@@ -10,16 +10,17 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@hookform/resolvers": "^3.6.0",
+    "@supabase/ssr": "^0.3.0",
+    "@supabase/supabase-js": "^2.43.4",
+    "aceternity-ui": "^0.2.2",
+    "clsx": "^2.1.1",
+    "framer-motion": "^11.18.2",
+    "lucide-react": "^0.395.0",
     "next": "14.2.3",
     "react": "^18",
     "react-dom": "^18",
-    "@hookform/resolvers": "^3.6.0",
     "react-hook-form": "^7.51.5",
-    "@supabase/supabase-js": "^2.43.4",
-    "@supabase/ssr": "^0.3.0",
-    "aceternity-ui": "^0.2.2",
-    "clsx": "^2.1.1",
-    "lucide-react": "^0.395.0",
     "tailwind-merge": "^2.3.0",
     "zod": "^3.23.8"
   },
@@ -34,4 +35,4 @@
     "tailwindcss": "^3.4.3",
     "typescript": "^5"
   }
-} 
+}
