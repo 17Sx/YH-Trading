@@ -157,38 +157,41 @@ export function EditTradeModal({
 
     const changedData: Partial<AddTradeInput> = {};
     let hasChanges = false;
-    (Object.keys(data) as Array<keyof AddTradeInput>).forEach(key => {
-      if (key === 'trade_date') {
-        const formDate = data.trade_date ? new Date(data.trade_date).toISOString().split("T")[0] : "";
-        const initialDate = trade.trade_date ? new Date(trade.trade_date).toISOString().split("T")[0] : "";
-        if (formDate !== initialDate) {
-          changedData[key] = data[key];
-          hasChanges = true;
-        }
-      } else if (data[key] !== (trade as any)[key] && (data[key] !== '' || (trade as any)[key] !== null) ) { 
-        if (data[key] === '' && (trade as any)[key] === null && (key === 'asset_id' || key === 'session_id' || key === 'setup_id')) {
-          changedData[key] = null;
-          hasChanges = true;
-        } else if ( (key === 'asset_id' || key === 'session_id' || key === 'setup_id') && data[key] === '' && (trade as any)[key] !== null) {
-          changedData[key] = null;
-          hasChanges = true;
-        }
-        else {
-          changedData[key] = data[key];
-          hasChanges = true;
-        }
-      }
-    });
-    
-    if (changedData.profit_loss_amount !== undefined && typeof changedData.profit_loss_amount === 'string') {
-        const parsedAmount = parseFloat(changedData.profit_loss_amount);
-        if (!isNaN(parsedAmount)) {
-            changedData.profit_loss_amount = parsedAmount;
-        } else {
-            changedData.profit_loss_amount = null;
-        }
+
+    const initialTradeDate = trade.trade_date ? new Date(trade.trade_date).toISOString().split("T")[0] : null;
+    const formTradeDate = data.trade_date ? new Date(data.trade_date).toISOString().split("T")[0] : null;
+    if (formTradeDate !== initialTradeDate) {
+      changedData.trade_date = data.trade_date;
+      hasChanges = true;
     }
 
+
+    const fieldsToCompare: Array<keyof Pick<AddTradeInput, 'asset_id' | 'session_id' | 'setup_id' | 'notes' | 'tradingview_link'>> = [
+      'asset_id', 'session_id', 'setup_id', 'notes', 'tradingview_link'
+    ];
+
+    for (const key of fieldsToCompare) {
+      const formValue = data[key] === '' ? null : data[key]; 
+      const initialValue = trade[key as keyof Trade]; 
+      if (formValue !== initialValue) {
+        changedData[key] = formValue; 
+        hasChanges = true;
+      }
+    }
+
+    if (data.risk_input !== trade.risk_input) {
+      changedData.risk_input = data.risk_input;
+      hasChanges = true;
+    }
+
+
+    const formPnl = data.profit_loss_amount;
+    if (formPnl !== undefined && formPnl !== trade.profit_loss_amount) {
+      changedData.profit_loss_amount = formPnl;
+      hasChanges = true;
+    } else if (formPnl === undefined && trade.profit_loss_amount !== null && trade.profit_loss_amount !== undefined) {
+
+    }
 
     if (!hasChanges) {
       toast.info("Aucune modification détectée.");
@@ -201,7 +204,7 @@ export function EditTradeModal({
       if (result.success) {
         toast.success("Trade modifié avec succès !");
         onClose(); 
-        } else {
+      } else {
         let errorMessage = result.error || "Une erreur est survenue lors de la modification.";
         if (result.issues) {
           errorMessage = result.issues.map((issue) => `${issue.path.join(".")}: ${issue.message}`).join(" ; ");
@@ -276,7 +279,12 @@ export function EditTradeModal({
                     name="asset_id"
                     control={control}
                     render={({ field }) => (
-                      <select {...field} id="edit-asset_id" className={`w-full p-2.5 bg-gray-700 border ${errors.asset_id ? 'border-red-500' : 'border-gray-600'} rounded-md focus:ring-purple-500 focus:border-purple-500`}>
+                      <select 
+                        {...field} 
+                        id="edit-asset_id" 
+                        className={`w-full p-2.5 bg-gray-700 border ${errors.asset_id ? 'border-red-500' : 'border-gray-600'} rounded-md focus:ring-purple-500 focus:border-purple-500`}
+                        value={field.value ?? ''}
+                      >
                         <option value="">Sélectionner...</option>
                         {localAssets.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
                       </select>
@@ -297,7 +305,12 @@ export function EditTradeModal({
                     name="session_id"
                     control={control}
                     render={({ field }) => (
-                        <select {...field} id="edit-session_id" className={`w-full p-2.5 bg-gray-700 border ${errors.session_id ? 'border-red-500' : 'border-gray-600'} rounded-md focus:ring-purple-500 focus:border-purple-500`}>
+                        <select 
+                          {...field} 
+                          id="edit-session_id" 
+                          className={`w-full p-2.5 bg-gray-700 border ${errors.session_id ? 'border-red-500' : 'border-gray-600'} rounded-md focus:ring-purple-500 focus:border-purple-500`}
+                          value={field.value ?? ''}
+                        >
                         <option value="">Sélectionner...</option>
                         {localSessions.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
                         </select>
@@ -318,7 +331,12 @@ export function EditTradeModal({
                     name="setup_id"
                     control={control}
                     render={({ field }) => (
-                        <select {...field} id="edit-setup_id" className={`w-full p-2.5 bg-gray-700 border ${errors.setup_id ? 'border-red-500' : 'border-gray-600'} rounded-md focus:ring-purple-500 focus:border-purple-500`}>
+                        <select 
+                          {...field} 
+                          id="edit-setup_id" 
+                          className={`w-full p-2.5 bg-gray-700 border ${errors.setup_id ? 'border-red-500' : 'border-gray-600'} rounded-md focus:ring-purple-500 focus:border-purple-500`}
+                          value={field.value ?? ''}
+                        >
                         <option value="">Sélectionner...</option>
                         {localSetups.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
                         </select>
@@ -350,11 +368,11 @@ export function EditTradeModal({
                               value={field.value === null || field.value === undefined || isNaN(parseFloat(String(field.value))) ? '' : String(parseFloat(String(field.value)))}
                               onChange={e => {
                                   const val = e.target.value;
-                                  if (val === '' || val === '-') { // Permettre de vider ou de commencer par un moins
+                                  if (val === '' || val === '-') { 
                                     field.onChange(val);
                                   } else {
                                     const num = parseFloat(val);
-                                    field.onChange(isNaN(num) ? '' : num); // Forcer la conversion en nombre ou chaine vide si NaN
+                                    field.onChange(isNaN(num) ? '' : num); 
                                   }
                               }}
                               onBlur={field.onBlur} 
@@ -408,7 +426,7 @@ export function EditTradeModal({
         <ManageItemsModal
           isOpen={!!itemManagementTarget}
           onClose={() => setItemManagementTarget(null)}
-          itemType={itemManagementTarget}
+          itemTypeLabel={currentItemTypeLabel}
           items={
             itemManagementTarget === "asset" ? localAssets :
             itemManagementTarget === "session" ? localSessions : localSetups
@@ -421,12 +439,11 @@ export function EditTradeModal({
             itemManagementTarget === "asset" ? deleteAsset :
             itemManagementTarget === "session" ? deleteSession : deleteSetup
           }
-          onListChanged={(newItemId?: string) => {
-            if (itemManagementTarget) { // Pour s'assurer que itemManagementTarget n'est pas null
-                handleListChangedInManageModal(itemManagementTarget, newItemId);
+          onListChanged={async (newItemId?: string) => {
+            if (itemManagementTarget) { 
+                await handleListChangedInManageModal(itemManagementTarget, newItemId);
             }
           }}
-          itemTypeLabel={currentItemTypeLabel}
         />
       )}
     </>

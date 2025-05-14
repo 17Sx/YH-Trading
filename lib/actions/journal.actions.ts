@@ -316,20 +316,17 @@ export async function updateTrade(
     return { error: "Utilisateur non authentifié." };
   }
 
-  // Valider seulement les champs fournis
   const result = AddTradeSchema.partial().safeParse(values);
   if (!result.success) {
     return { error: "Données du formulaire invalides.", issues: result.error.issues };
   }
 
-  // Construire l'objet de mise à jour uniquement avec les champs validés fournis
   const updateData: { [key: string]: any } = {};
   for (const key in result.data) {
     if (result.data.hasOwnProperty(key)) {
       const value = (result.data as any)[key];
-      if (value !== undefined) { // Seulement si la valeur est définie (pas undefined)
-        // Pour les clés étrangères, si la valeur du formulaire est une chaîne vide, on la convertit en null pour la BD.
-        // Si la valeur est déjà null (grâce au schéma .nullable()), on la garde null.
+      if (value !== undefined) { 
+
         if (key === "asset_id" || key === "session_id" || key === "setup_id") {
           updateData[key] = value === "" ? null : value;
         } else {
@@ -339,13 +336,11 @@ export async function updateTrade(
     }
   }
   
-  // S'assurer que profit_loss_amount est un nombre si présent
   if (updateData.profit_loss_amount !== undefined && typeof updateData.profit_loss_amount === 'string') {
     updateData.profit_loss_amount = parseFloat(updateData.profit_loss_amount);
     if (isNaN(updateData.profit_loss_amount)) {
-      // Optionnel: retourner une erreur si la conversion échoue et que le champ était intentionnellement fourni
-      // return { error: "Profit/Perte doit être un nombre valide." };
-      delete updateData.profit_loss_amount; // Ou simplement l'ignorer si la conversion n'est pas valide
+
+      delete updateData.profit_loss_amount; 
     }
   }
 
