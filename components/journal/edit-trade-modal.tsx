@@ -2,9 +2,9 @@
 
 import { useForm, SubmitHandler, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { AddTradeSchema, type AddTradeInput } from "@/schemas/journal.schema"; // Réutiliser le schéma, mais on ne mettra à jour que les champs modifiés
+import { AddTradeSchema, type AddTradeInput } from "@/schemas/journal.schema"; 
 import { 
-  updateTrade, // Nouvelle action
+  updateTrade, 
   addAsset, addSession, addSetup, 
   deleteAsset, deleteSession, deleteSetup 
 } from "@/lib/actions/journal.actions";
@@ -18,7 +18,7 @@ import { getAssets, getSessions, getSetups } from "@/lib/actions/journal.actions
 interface EditTradeModalProps {
   isOpen: boolean;
   onClose: () => void;
-  trade: Trade | null; // Le trade à modifier
+  trade: Trade | null; 
   assets: Asset[];
   sessions: Session[];
   setups: Setup[];
@@ -44,12 +44,12 @@ export function EditTradeModal({
     control,
     register,
     handleSubmit,
-    formState: { errors, isSubmitting: isSubmittingForm }, // Renommé pour clarté
+    formState: { errors, isSubmitting: isSubmittingForm }, 
     reset,
     setValue,
-  } = useForm<AddTradeInput>({ // Toujours AddTradeInput car le formulaire a la même structure
-    resolver: zodResolver(AddTradeSchema.partial()), // Utiliser partial() pour la mise à jour
-    defaultValues: { // Les valeurs par défaut seront écrasées par useEffect
+  } = useForm<AddTradeInput>({ 
+    resolver: zodResolver(AddTradeSchema.partial()), 
+    defaultValues: {
       trade_date: "",
       asset_id: "",
       session_id: "",
@@ -75,7 +75,6 @@ export function EditTradeModal({
     setLocalSetups(setups);
   }, [setups]);
 
-  // Pré-remplir le formulaire quand le trade change ou que le modal s'ouvre
   useEffect(() => {
     if (isOpen && trade) {
       reset({
@@ -89,7 +88,6 @@ export function EditTradeModal({
         notes: trade.notes || "",
       });
     } else if (!isOpen) {
-      // Optionnel: réinitialiser si le modal est fermé sans trade (au cas où)
       reset({ 
         trade_date: new Date().toISOString().split("T")[0],
         asset_id: "", session_id: "", setup_id: "", 
@@ -102,7 +100,6 @@ export function EditTradeModal({
     setItemManagementTarget(type);
   };
 
-  // Les fonctions refreshLocalItems et handleListChangedInManageModal sont similaires à AddTradeModal
   const refreshLocalAssets = useCallback(async () => {
     const { assets: newAssets } = await getAssets();
     if (newAssets) setLocalAssets(newAssets);
@@ -129,7 +126,6 @@ export function EditTradeModal({
       } else if (currentAssets.length === 0) { 
         setValue("asset_id", "", { shouldValidate: true }); refreshedListIsEmpty = true; 
       }
-      // Si l'ancien asset_id n'existe plus, on ne le reset pas forcément au premier, on laisse l'utilisateur choisir
     } else if (itemType === "session") {
       await refreshLocalSessions();
       const currentSessions = await getSessions().then(res => res.sessions || []);
@@ -149,7 +145,7 @@ export function EditTradeModal({
          setValue("setup_id", "", { shouldValidate: true }); refreshedListIsEmpty = true;
       }
     }
-    await onDataNeedsRefresh(); // Rafraîchir les données de la page principale pour refléter les changements
+    await onDataNeedsRefresh(); 
   }, [refreshLocalAssets, refreshLocalSessions, refreshLocalSetups, onDataNeedsRefresh, setValue, trade]);
 
 
@@ -159,12 +155,9 @@ export function EditTradeModal({
       return;
     }
 
-    // Créer un objet avec seulement les champs qui ont été modifiés
     const changedData: Partial<AddTradeInput> = {};
     let hasChanges = false;
     (Object.keys(data) as Array<keyof AddTradeInput>).forEach(key => {
-      // Cas spécial pour la date, car le format peut différer légèrement.
-      // On compare la date normalisée.
       if (key === 'trade_date') {
         const formDate = data.trade_date ? new Date(data.trade_date).toISOString().split("T")[0] : "";
         const initialDate = trade.trade_date ? new Date(trade.trade_date).toISOString().split("T")[0] : "";
@@ -172,16 +165,13 @@ export function EditTradeModal({
           changedData[key] = data[key];
           hasChanges = true;
         }
-      } else if (data[key] !== (trade as any)[key] && (data[key] !== '' || (trade as any)[key] !== null) ) { // Gérer null vs ""
-         // Cas où la valeur du formulaire est une chaîne vide et la valeur initiale était null (pour les champs optionnels comme asset_id, etc.)
+      } else if (data[key] !== (trade as any)[key] && (data[key] !== '' || (trade as any)[key] !== null) ) { 
         if (data[key] === '' && (trade as any)[key] === null && (key === 'asset_id' || key === 'session_id' || key === 'setup_id')) {
-          // Pas de changement si le form est vide et initial était null pour les FKs.
-          // Si on veut permettre de dé-sélectionner (passer de ID à null), il faut que le form envoie `null` ou un traitement spécifique.
-          // Pour l'instant, si le form envoie "", et que initial était null, on considère pas de changement.
-          // Si initial était un ID, et form envoie "", c'est un changement (vers null).
+          changedData[key] = null;
+          hasChanges = true;
         } else if ( (key === 'asset_id' || key === 'session_id' || key === 'setup_id') && data[key] === '' && (trade as any)[key] !== null) {
-            changedData[key] = null; // Explicitement mettre à null si on dé-sélectionne
-            hasChanges = true;
+          changedData[key] = null;
+          hasChanges = true;
         }
         else {
           changedData[key] = data[key];
@@ -190,14 +180,12 @@ export function EditTradeModal({
       }
     });
     
-    // Conversion de profit_loss_amount en nombre si modifié et string
     if (changedData.profit_loss_amount !== undefined && typeof changedData.profit_loss_amount === 'string') {
         const parsedAmount = parseFloat(changedData.profit_loss_amount);
         if (!isNaN(parsedAmount)) {
             changedData.profit_loss_amount = parsedAmount;
         } else {
-            // Gérer l'erreur ou supprimer le champ si la conversion échoue
-            // Pour l'instant, on suppose que la validation Zod le gèrera ou qu'il ne sera pas envoyé si inchangé
+            changedData.profit_loss_amount = null;
         }
     }
 
@@ -213,8 +201,7 @@ export function EditTradeModal({
       if (result.success) {
         toast.success("Trade modifié avec succès !");
         onClose(); 
-        // onDataNeedsRefresh est déjà appelé dans handleEditModalClose sur la page principale
-      } else {
+        } else {
         let errorMessage = result.error || "Une erreur est survenue lors de la modification.";
         if (result.issues) {
           errorMessage = result.issues.map((issue) => `${issue.path.join(".")}: ${issue.message}`).join(" ; ");

@@ -325,12 +325,16 @@ export async function updateTrade(
   // Construire l'objet de mise à jour uniquement avec les champs validés fournis
   const updateData: { [key: string]: any } = {};
   for (const key in result.data) {
-    if (result.data.hasOwnProperty(key) && (result.data as any)[key] !== undefined) {
-      // Gérer le cas des champs optionnels qui pourraient être vides mais pas undefined (ex: "" pour asset_id)
-      if (key === "asset_id" || key === "session_id" || key === "setup_id") {
-        updateData[key] = (result.data as any)[key] === "" ? null : (result.data as any)[key];
-      } else {
-        updateData[key] = (result.data as any)[key];
+    if (result.data.hasOwnProperty(key)) {
+      const value = (result.data as any)[key];
+      if (value !== undefined) { // Seulement si la valeur est définie (pas undefined)
+        // Pour les clés étrangères, si la valeur du formulaire est une chaîne vide, on la convertit en null pour la BD.
+        // Si la valeur est déjà null (grâce au schéma .nullable()), on la garde null.
+        if (key === "asset_id" || key === "session_id" || key === "setup_id") {
+          updateData[key] = value === "" ? null : value;
+        } else {
+          updateData[key] = value;
+        }
       }
     }
   }
