@@ -1,0 +1,85 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+You are an expert in building modern, maintainable full-stack applications using TypeScript, Next.js App Router, Supabase, Tailwind CSS, and custom UI frameworks like AlignUI and AcernityUI.
+
+General Goals
+- Build a dark-themed professional trading journal app with a minimalist aesthetic and subtle purple highlights.
+- Keep the project modular, scalable, and developer-friendly.
+- Ensure UI consistency using AlignUI and AcernityUI. Apply custom Tailwind config if needed to match design tokens.
+- Minimize third-party state libraries unless strictly needed (prefer useState/useReducer + Server Actions).
+- Avoid overengineering; prioritize simplicity and clarity.
+
+Code Guidelines
+- Use functional components only.
+- Prefer `function` over `const` for top-level components.
+- Always type props with TypeScript interfaces.
+- Avoid enums; use string literal types or maps.
+- Use RORO pattern (Receive an Object, Return an Object) for all shared utilities and functions.
+- Use Tailwind exclusively for layout and styling. Avoid writing custom CSS unless necessary.
+- Follow folder naming conventions: lowercase-with-dashes.
+- Prefer named exports. Avoid default exports.
+- Collocate related files: `component.tsx`, `component.type.ts`, `component.style.ts`, etc.
+
+Folder Structure
+- Use `app/` for routing and layout with Next.js 14 App Router.
+- Group features by domain (e.g., `trades/`, `stats/`, `journal/`).
+- Place all database logic under `lib/supabase/`.
+- Put UI components in `components/ui/`, organized by reuse level.
+- Use `constants/` for theme tokens, breakpoints, etc.
+- Define Zod schemas in `schemas/` and reuse for both client and server validation.
+
+Styling and Theming
+- Follow a dark theme using Tailwind’s `dark` class strategy.
+- Base: black backgrounds, white text, purple (#7e5bef) highlights (custom Tailwind token: `--primary-accent`).
+- Use Tailwind's custom theme extension for consistent design tokens.
+- Reuse spacing and typography scales across all views.
+- Avoid inline styles. Prefer Tailwind classes or centralized style maps.
+
+UI Framework Integration
+- Prioritize usage of AlignUI and AcernityUI components.
+- Create wrappers if needed to extend or combine UI primitives.
+- Use headless components where necessary for full control.
+
+Data Handling
+- Use Supabase for all auth, database, and storage logic.
+- Configure and enforce RLS policies. Use Supabase Auth or BetterAuth (choose one).
+- Write reusable client wrappers under `lib/supabase/`.
+- Fetch data in server components where possible (React Server Components).
+- Avoid useEffect for fetching data; use Server Actions or RSCs.
+- Use Zod to validate user input both client- and server-side.
+
+Functionality Scope
+- Start with: 
+  - trade logging (date, symbol, entry, exit, pnl, notes),
+  - journal entry (text + emotion tags),
+  - performance metrics (e.g., win rate, avg PnL),
+  - charts (e.g., bar/pie for emotions, PnL curve).
+- Optional later: tags, filtering, session tracking, annotation overlays.
+
+Pages
+- Keep the app to two private pages: `/dashboard` and `/journal`.
+- No public marketing site is needed.
+- Use route groups if necessary to separate layout logic.
+
+Accessibility and UX
+- All components must be keyboard-navigable.
+- Use ARIA attributes on interactive elements.
+- Follow WCAG contrast standards.
+- Use toast notifications for feedback (e.g., on save or error).
+- Include loading states and skeletons where needed.
+
+Testing and Quality
+- Avoid any TODOs or unfinished logic in committed files.
+- Run type checks and lints before every push.
+- Use E2E testing for trade input + chart rendering (optional).
+
+Performance
+- Use lazy loading and dynamic imports for charts and heavy components.
+- Optimize images and illustrations with Next/Image.
+- Track Core Web Vitals if performance becomes a concern.
+
+Keep the code clean, user-friendly, and deeply focused on clarity, accessibility, and long-term maintainability. Treat this like a production-grade project even if only used by two people.
+

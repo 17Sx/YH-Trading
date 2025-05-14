@@ -1,0 +1,11 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Styles globaux supplémentaires si nécessaires */
+body {
+  /* Vous pouvez ajouter ici des styles globaux pour le body si les classes Tailwind ne suffisent pas,
+     mais en général, il est préférable de tout gérer via Tailwind autant que possible. */
+  /* Par exemple, si vous voulez vous assurer que la couleur d'accentuation est appliquée quelque part par défaut */
+  /* color: theme(colors.primary.accent); */
+}
