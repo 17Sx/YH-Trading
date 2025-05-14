@@ -2,6 +2,7 @@
 import Dither from "@/components/ui/Dither/Dither"; 
 import { AddTradeModal } from "@/components/journal/add-trade-modal";
 import { TradesTable } from "@/components/journal/trades-table";
+import { TradeDetailsModal } from "@/components/journal/trade-details-modal";
 import {
   getAssets,
   getSessions,
@@ -26,7 +27,9 @@ interface JournalPageData {
 
 export default function JournalPage() {
   const primaryAccentRGB: [number, number, number] = [0.494, 0.357, 0.937];
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
+  const [selectedTrade, setSelectedTrade] = useState<Trade | null>(null);
   const [journalData, setJournalData] = useState<JournalPageData>({
     assets: [],
     sessions: [],
@@ -86,9 +89,19 @@ export default function JournalPage() {
     loadData();
   }, []);
 
-  const handleModalClose = () => {
-    setIsModalOpen(false);
+  const handleAddModalClose = () => {
+    setIsAddModalOpen(false);
     loadData();
+  };
+
+  const handleDetailsModalClose = () => {
+    setIsDetailsModalOpen(false);
+    setSelectedTrade(null);
+  };
+
+  const handleRowClick = (trade: Trade) => {
+    setSelectedTrade(trade);
+    setIsDetailsModalOpen(true);
   };
 
   const yearOptions = useMemo(() => {
@@ -202,7 +215,7 @@ export default function JournalPage() {
                 </p>
               </div>
               <button
-                onClick={() => setIsModalOpen(true)}
+                onClick={() => setIsAddModalOpen(true)}
                 className="mt-4 sm:mt-0 bg-purple-600 hover:bg-purple-700 text-white font-semibold py-2.5 px-5 rounded-md transition-colors duration-300 focus:ring-2 focus:ring-purple-400 focus:ring-offset-2 focus:ring-offset-gray-900 flex items-center"
               >
                 <PlusCircle size={20} className="mr-2" />
@@ -287,7 +300,7 @@ export default function JournalPage() {
                     Erreur lors du chargement des données du journal : {journalData.error}
                  </div>
             ) : (
-              <TradesTable trades={filteredTrades} />
+              <TradesTable trades={filteredTrades} onRowClick={handleRowClick} />
             )}
 
           </div>
@@ -297,12 +310,18 @@ export default function JournalPage() {
         </div>
 
         <AddTradeModal
-          isOpen={isModalOpen}
-          onClose={handleModalClose}
+          isOpen={isAddModalOpen}
+          onClose={handleAddModalClose}
           assets={journalData.assets}
           sessions={journalData.sessions}
           setups={journalData.setups}
           onDataNeedsRefresh={loadData}
+        />
+        
+        <TradeDetailsModal
+          isOpen={isDetailsModalOpen}
+          onClose={handleDetailsModalClose}
+          trade={selectedTrade}
         />
       </div>
     </>
