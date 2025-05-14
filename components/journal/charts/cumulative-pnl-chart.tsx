@@ -50,8 +50,8 @@ export function CumulativePnlChart({ trades }: CumulativePnlChartProps) {
 
 
   return (
-    <div className="bg-gray-800/70 p-4 rounded-lg shadow-xl backdrop-blur-md border border-gray-700/50 h-96"> 
-      <h3 className="text-lg font-semibold text-purple-300 mb-4 text-center">Courbe de PnL Cumulatif (%)</h3>
+    <div className="bg-gray-800/70 p-4 rounded-lg shadow-xl backdrop-blur-md border border-gray-700/50 h-85 "> 
+      <h3 className="text-lg font-semibold text-purple-300 mb-4 text-center">Performance Cumulative (%)</h3>
       <ResponsiveContainer width="100%" height="100%">
         <LineChart data={chartData} margin={{ top: 5, right: 20, left: -20, bottom: 20 }}> 
           <CartesianGrid strokeDasharray="3 3" strokeOpacity={0.2}/>
@@ -75,7 +75,7 @@ export function CumulativePnlChart({ trades }: CumulativePnlChartProps) {
           <Line 
             type="monotone" 
             dataKey="cumulativePnl" 
-            name="PnL Cumulatif" 
+            name=" " 
             stroke="#7e5bef" 
             strokeWidth={2} 
             dot={{ r: 3, fill: '#7e5bef' }} 
