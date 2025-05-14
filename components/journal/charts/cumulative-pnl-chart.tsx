@@ -10,9 +10,9 @@ interface CumulativePnlChartProps {
 }
 
 interface ChartData {
-  date: string;         // Formatted date for X-axis
-  cumulativePnl: number; // Cumulative PnL
-  tradePnl: number;      // PnL of the trade on this date (for tooltip)
+  date: string;         
+  cumulativePnl: number; 
+  tradePnl: number;      
 }
 
 export function CumulativePnlChart({ trades }: CumulativePnlChartProps) {
@@ -27,26 +27,23 @@ export function CumulativePnlChart({ trades }: CumulativePnlChartProps) {
   const chartData: ChartData[] = sortedTrades.map((trade, index) => {
     currentCumulativePnl += trade.profit_loss_amount;
     return {
-      // Utiliser l'index ou une date plus précise si plusieurs trades par jour
       date: format(new Date(trade.trade_date), 'dd MMM', { locale: fr }), 
       cumulativePnl: parseFloat(currentCumulativePnl.toFixed(2)),
       tradePnl: trade.profit_loss_amount,
     };
   });
   
-  // Ajouter un point de départ à 0 si le premier trade n'est pas à 0 PnL
   if (chartData.length > 0 && (sortedTrades[0].profit_loss_amount !== 0 || chartData[0].cumulativePnl !== sortedTrades[0].profit_loss_amount)) {
      const firstTradeDate = new Date(sortedTrades[0].trade_date);
-     // Créer une date un peu avant le premier trade pour le point de départ à 0
      const startDate = new Date(firstTradeDate.setDate(firstTradeDate.getDate() -1));
       chartData.unshift({
         date: format(startDate, 'dd MMM', { locale: fr }),
         cumulativePnl: 0,
         tradePnl: 0,
       });
-  } else if (chartData.length === 0) { // S'il n'y a pas de trades après le filtrage mais on veut quand même un point de départ
+  } else if (chartData.length === 0) { 
      chartData.unshift({
-        date: format(new Date(), 'dd MMM', { locale: fr }), // Date du jour par défaut
+        date: format(new Date(), 'dd MMM', { locale: fr }), // Date du jour par défaut je croit
         cumulativePnl: 0,
         tradePnl: 0,
       });
@@ -54,16 +51,16 @@ export function CumulativePnlChart({ trades }: CumulativePnlChartProps) {
 
 
   return (
-    <div className="bg-gray-800/70 p-4 rounded-lg shadow-xl backdrop-blur-md border border-gray-700/50 h-96"> {/* Hauteur augmentée */}
+    <div className="bg-gray-800/70 p-4 rounded-lg shadow-xl backdrop-blur-md border border-gray-700/50 h-96"> 
       <h3 className="text-lg font-semibold text-purple-300 mb-4 text-center">Courbe de PnL Cumulatif (%)</h3>
       <ResponsiveContainer width="100%" height="100%">
-        <LineChart data={chartData} margin={{ top: 5, right: 20, left: -20, bottom: 20 }}> {/* Marge inférieure pour les labels XAxis */}
+        <LineChart data={chartData} margin={{ top: 5, right: 20, left: -20, bottom: 20 }}> 
           <CartesianGrid strokeDasharray="3 3" strokeOpacity={0.2}/>
           <XAxis dataKey="date" tick={{ fontSize: 10, fill: '#9ca3af' }} angle={-30} textAnchor="end" />
           <YAxis 
             tickFormatter={(value) => `${value}%`} 
             tick={{ fontSize: 12, fill: '#9ca3af' }}
-            domain={['auto', 'auto']} // Permet à Recharts de calculer le domaine
+            domain={['auto', 'auto']} 
           />
           <Tooltip
             contentStyle={{ backgroundColor: '#374151', border: '1px solid #4B5563', borderRadius: '0.375rem' }}

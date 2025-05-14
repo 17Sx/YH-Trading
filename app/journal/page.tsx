@@ -3,8 +3,8 @@ import Dither from "@/components/ui/Dither/Dither";
 import { AddTradeModal } from "@/components/journal/add-trade-modal";
 import { TradesTable } from "@/components/journal/trades-table";
 import { TradeDetailsModal } from "@/components/journal/trade-details-modal";
-import { SetupDistributionChart } from "@/components/journal/charts/setup-distribution-chart";
-import { SetupPerformanceChart } from "@/components/journal/charts/setup-performance-chart";
+import { WinrateDistributionChart } from "@/components/journal/charts/winrate-distribution-chart";
+import { SessionPerformanceChart } from "@/components/journal/charts/session-performance-chart";
 import { CumulativePnlChart } from "@/components/journal/charts/cumulative-pnl-chart";
 import {
   getAssets,
@@ -296,13 +296,17 @@ export default function JournalPage() {
 
             {/* Section des Graphiques */}
             {!isLoading && filteredTrades.length > 0 && (
-              <div className="mb-8 grid grid-cols-1 lg:grid-cols-2 gap-6 items-stretch">
-                <SetupDistributionChart trades={filteredTrades} />
-                <SetupPerformanceChart trades={filteredTrades} />
-                <div className="lg:col-span-2">
-                  <CumulativePnlChart trades={filteredTrades} />
-                </div>
-              </div>
+              <div className="mb-8 grid grid-cols-1 lg:grid-cols-[auto,1fr] gap-6 items-stretch">
+  <div className="flex justify-start">
+    <WinrateDistributionChart trades={filteredTrades} />
+  </div>
+  <div className="flex flex-col justify-center">
+    <SessionPerformanceChart trades={filteredTrades} />
+  </div>
+  <div className="lg:col-span-2">
+    <CumulativePnlChart trades={filteredTrades} />
+  </div>
+</div>
             )}
             
             {isLoading && filteredTrades.length === 0 && journalData.trades.length > 0 ? (
