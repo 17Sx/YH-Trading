@@ -5,13 +5,13 @@ import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 
 export interface MonthlyPnlData {
-  monthYear: string; // ex: "Jan 2023"
+  monthYear: string; 
   pnl: number;
 }
 
 interface MonthlyPnlBarChartProps {
   data: MonthlyPnlData[];
-  currencySuffix?: string; // Pour afficher '%' ou un symbole monétaire
+  currencySuffix?: string; 
 }
 
 const CustomTooltip = ({ active, payload, label, currencySuffix }: any) => {
@@ -41,15 +41,15 @@ export function MonthlyPnlBarChart({ data, currencySuffix = '%' }: MonthlyPnlBar
       <ResponsiveContainer width="100%" height="100%">
         <BarChart 
           data={data} 
-          margin={{ top: 5, right: 10, left: -25, bottom: 20 }} // Ajusté pour des écrans plus petits
+          margin={{ top: 5, right: 10, left: -25, bottom: 20 }}
         >
           <CartesianGrid strokeDasharray="3 3" strokeOpacity={0.2} />
           <XAxis 
             dataKey="monthYear" 
             tick={{ fontSize: 10, fill: '#9ca3af' }} 
-            angle={-30} // Angle pour les labels longs
+            angle={-30} 
             textAnchor="end"
-            interval={0} // Afficher tous les labels si possible, Recharts peut ajuster
+            interval={0} 
           />
           <YAxis 
             tickFormatter={(value) => `${value.toFixed(0)}${currencySuffix}`} 
@@ -57,10 +57,9 @@ export function MonthlyPnlBarChart({ data, currencySuffix = '%' }: MonthlyPnlBar
             allowDecimals={false}
           />
           <Tooltip content={<CustomTooltip currencySuffix={currencySuffix} />} cursor={{ fill: 'rgba(126, 91, 239, 0.1)' }} />
-          {/* <Legend wrapperStyle={{ fontSize: '14px' }} /> // Optionnel, peut-être pas nécessaire ici */}
           <Bar dataKey="pnl" name="PnL Mensuel">
             {data.map((entry, index) => (
-              <Cell key={`cell-${index}`} fill={entry.pnl >= 0 ? '#7e5bef' /* Vert */ : '#F87171' /* Rouge */} />
+              <Cell key={`cell-${index}`} fill={entry.pnl >= 0 ? '#7e5bef'  : '#F87171' } />
             ))}
           </Bar>
         </BarChart>

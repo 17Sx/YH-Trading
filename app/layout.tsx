@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import { FloatingDock } from "@/components/ui/floating-dock";
-import { LayoutDashboard, BookOpenText, LogOut } from "lucide-react";
+import { LayoutDashboard, BookOpenText, LogOut, Calendar } from "lucide-react";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -24,6 +24,11 @@ const navItems = [
     title: "Journal",
     href: "/journal",
     icon: <BookOpenText className="h-full w-full" />,
+  },
+  {
+    title: "Calendrier",
+    href: "/calendar",
+    icon: <Calendar className="h-full w-full" />,
   },
   {
     title: "Déconnexion",
