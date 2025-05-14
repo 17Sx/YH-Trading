@@ -319,11 +319,17 @@ export default function Dither({
   enableMouseInteraction = true,
   mouseRadius = 1,
 }: DitherProps) {
+  const [dpr, setDpr] = useState(1);
+
+  useEffect(() => {
+    setDpr(window.devicePixelRatio);
+  }, []);
+
   return (
     <Canvas
       className="w-full h-full relative"
       camera={{ position: [0, 0, 6] }}
-      dpr={window.devicePixelRatio}
+      dpr={dpr}
       gl={{ antialias: true, preserveDrawingBuffer: true }}
       style={{ opacity: 0.3 }}
     >
