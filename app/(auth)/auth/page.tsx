@@ -3,8 +3,8 @@
 import { useState } from 'react';
 import { SignInForm } from '@/components/auth/sign-in-form';
 import { SignUpForm } from '@/components/auth/sign-up-form';
-import { motion, AnimatePresence } from 'framer-motion'; // Pour des transitions fluides
-import { Lock, UserPlus } from 'lucide-react'; // Icônes
+import { motion, AnimatePresence } from 'framer-motion'; 
+import { Lock, UserPlus } from 'lucide-react'; 
 
 export default function AuthenticationPage() {
   const [isLoginView, setIsLoginView] = useState(true);

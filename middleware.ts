@@ -54,8 +54,7 @@ export async function middleware(request: NextRequest) {
     }
   );
 
-  // Rafraîchit la session si l'utilisateur est connecté.
-  // Important pour garder la session active.
+
   await supabase.auth.getUser();
 
   return response;
@@ -63,13 +62,6 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    /*
-     * Correspond à tous les chemins de requête sauf ceux qui commencent par :
-     * - api (routes API)
-     * - _next/static (fichiers statiques)
-     * - _next/image (optimisation d'images)
-     * - favicon.ico (fichier favicon)
-     */
     '/((?!api|_next/static|_next/image|favicon.ico).*)',
   ],
 }; 

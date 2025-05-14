@@ -5,8 +5,7 @@ import { useForm, SubmitHandler } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { SignInSchema, type SignInInput } from '@/schemas/auth.schema';
 import { signInUser } from '@/lib/actions/auth.actions';
-// import { Input } from "@/components/ui/input";
-// import { Button } from "@/components/ui/button";
+
 
 export function SignInForm() {
   const [isPending, startTransition] = useTransition();
@@ -27,7 +26,6 @@ export function SignInForm() {
       if (result?.error) {
         setError(result.error);
       }
-      // Si redirect, la page changera automatiquement
     });
   };
 

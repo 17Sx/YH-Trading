@@ -5,8 +5,7 @@ import { useForm, SubmitHandler } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { SignUpSchema, type SignUpInput } from '@/schemas/auth.schema';
 import { signUpUser } from '@/lib/actions/auth.actions';
-// import { Input } from "@/components/ui/input"; // Exemple si vous avez un composant Input personnalisé
-// import { Button } from "@/components/ui/button"; // Exemple pour un Button
+
 
 export function SignUpForm() {
   const [isPending, startTransition] = useTransition();
@@ -30,14 +29,12 @@ export function SignUpForm() {
       if (result?.error) {
         setError(result.error);
         if (result.issues) {
-          // Gérer les erreurs Zod plus spécifiquement si nécessaire
           console.error("Zod issues:", result.issues);
         }
       } else if (result?.success && result?.message) {
         setSuccessMessage(result.message); 
-        reset(); // Réinitialiser le formulaire en cas de succès (si confirmation email)
+        reset();
       }
-      // Si redirect, la page changera automatiquement
     });
   };
 
