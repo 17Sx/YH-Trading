@@ -4,13 +4,16 @@ import type { Trade } from "@/lib/actions/journal.actions";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"; 
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
+import { Pencil, Trash2 } from "lucide-react";
 
 interface TradesTableProps {
   trades: Trade[];
   onRowClick: (trade: Trade) => void;
+  onEdit?: (trade: Trade) => void;
+  onDelete?: (trade: Trade) => void;
 }
 
-export function TradesTable({ trades, onRowClick }: TradesTableProps) {
+export function TradesTable({ trades, onRowClick, onEdit, onDelete }: TradesTableProps) {
   if (!trades || trades.length === 0) {
     return (
       <div className="bg-gray-800/80 p-6 rounded-md shadow-xl min-h-[150px] flex items-center justify-center backdrop-blur-md border border-gray-700/60">
@@ -35,7 +38,7 @@ export function TradesTable({ trades, onRowClick }: TradesTableProps) {
             <TableHead className="py-3 px-4 text-right text-xs font-medium text-purple-300 uppercase tracking-wider">Profit/Perte</TableHead>
             <TableHead className="py-3 px-4 text-left text-xs font-medium text-purple-300 uppercase tracking-wider">Notes</TableHead>
             <TableHead className="py-3 px-4 text-left text-xs font-medium text-purple-300 uppercase tracking-wider">TradingView</TableHead>
-            {/* <TableHead className="py-3 px-4 text-left text-xs font-medium text-purple-300 uppercase tracking-wider">Actions</TableHead> */}
+            <TableHead className="py-3 px-4 text-center text-xs font-medium text-purple-300 uppercase tracking-wider hidden md:table-cell">Actions</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody className="divide-y divide-gray-700">
@@ -64,10 +67,24 @@ export function TradesTable({ trades, onRowClick }: TradesTableProps) {
                   </a>
                 ) : '-'}
               </TableCell>
-              {/* <TableCell className="py-3 px-4 whitespace-nowrap text-sm">
-                <button className="text-purple-400 hover:text-purple-300 mr-2">Éditer</button>
-                <button className="text-red-500 hover:text-red-400">Suppr.</button>
-              </TableCell> */}
+              <TableCell className="py-3 px-4 whitespace-nowrap text-sm text-center hidden md:table-cell">
+                <button
+                  className="inline-flex items-center justify-center text-purple-400 hover:text-purple-200 mr-2"
+                  title="Éditer"
+                  onClick={e => { e.stopPropagation(); onEdit && onEdit(trade); }}
+                  aria-label="Éditer"
+                >
+                  <Pencil size={18} />
+                </button>
+                <button
+                  className="inline-flex items-center justify-center text-red-500 hover:text-red-400"
+                  title="Supprimer"
+                  onClick={e => { e.stopPropagation(); onDelete && onDelete(trade); }}
+                  aria-label="Supprimer"
+                >
+                  <Trash2 size={18} />
+                </button>
+              </TableCell>
             </TableRow>
           ))}
         </TableBody>

@@ -20,7 +20,6 @@ export function CumulativePnlChart({ trades }: CumulativePnlChartProps) {
     return <div className="text-center text-gray-400 py-8">Aucune donnée pour afficher la courbe de PnL.</div>;
   }
 
-  // Trier les trades par date
   const sortedTrades = [...trades].sort((a, b) => new Date(a.trade_date).getTime() - new Date(b.trade_date).getTime());
 
   let currentCumulativePnl = 0;

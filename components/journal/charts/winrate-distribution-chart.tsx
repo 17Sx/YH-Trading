@@ -7,8 +7,8 @@ interface WinrateDistributionChartProps {
   trades: Trade[];
 }
 
-const WIN_COLOR = "#7e5bef"; // Orange moderne (ou mets #7e5bef pour violet)
-const BG_COLOR = "#23272e";  // Gris foncé pour la partie restante
+const WIN_COLOR = "#7e5bef"; 
+const BG_COLOR = "#23272e";  
 
 export function WinrateDistributionChart({ trades }: WinrateDistributionChartProps) {
   if (!trades || trades.length === 0) {
@@ -19,7 +19,7 @@ export function WinrateDistributionChart({ trades }: WinrateDistributionChartPro
   const numSL = trades.filter(t => t.profit_loss_amount < 0).length;
   const winrate = (numTP + numSL) > 0 ? (numTP / (numTP + numSL)) * 100 : 0;
   
-  // Données pour le donut : [partie win, partie restante]
+
   const data = [
     { name: "Win", value: winrate },
     { name: "Rest", value: 100 - winrate }

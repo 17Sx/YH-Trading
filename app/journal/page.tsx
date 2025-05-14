@@ -1,8 +1,10 @@
 "use client";
 import Dither from "@/components/ui/Dither/Dither"; 
 import { AddTradeModal } from "@/components/journal/add-trade-modal";
+import { EditTradeModal } from "@/components/journal/edit-trade-modal";
 import { TradesTable } from "@/components/journal/trades-table";
 import { TradeDetailsModal } from "@/components/journal/trade-details-modal";
+import { DeleteTradeConfirmationModal } from "@/components/journal/delete-trade-confirmation-modal";
 import { WinrateDistributionChart } from "@/components/journal/charts/winrate-distribution-chart";
 import { SessionPerformanceChart } from "@/components/journal/charts/session-performance-chart";
 import { CumulativePnlChart } from "@/components/journal/charts/cumulative-pnl-chart";
@@ -11,6 +13,7 @@ import {
   getSessions,
   getSetups,
   getTrades,
+  deleteTrade,
   type Asset,
   type Session,
   type Setup,
@@ -31,8 +34,13 @@ interface JournalPageData {
 export default function JournalPage() {
   const primaryAccentRGB: [number, number, number] = [0.494, 0.357, 0.937];
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
   const [selectedTrade, setSelectedTrade] = useState<Trade | null>(null);
+  const [tradeToEdit, setTradeToEdit] = useState<Trade | null>(null);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [tradeToDelete, setTradeToDelete] = useState<Trade | null>(null);
+  const [isDeletingTrade, setIsDeletingTrade] = useState(false);
   const [journalData, setJournalData] = useState<JournalPageData>({
     assets: [],
     sessions: [],
@@ -97,6 +105,12 @@ export default function JournalPage() {
     loadData();
   };
 
+  const handleEditModalClose = () => {
+    setIsEditModalOpen(false);
+    setTradeToEdit(null);
+    loadData();
+  };
+
   const handleDetailsModalClose = () => {
     setIsDetailsModalOpen(false);
     setSelectedTrade(null);
@@ -105,6 +119,37 @@ export default function JournalPage() {
   const handleRowClick = (trade: Trade) => {
     setSelectedTrade(trade);
     setIsDetailsModalOpen(true);
+  };
+
+  const handleOpenEditModal = (trade: Trade) => {
+    setTradeToEdit(trade);
+    setIsEditModalOpen(true);
+  };
+
+  const handleOpenDeleteModal = (trade: Trade) => {
+    setTradeToDelete(trade);
+    setIsDeleteModalOpen(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!tradeToDelete) return;
+    setIsDeletingTrade(true);
+    try {
+      const result = await deleteTrade(tradeToDelete.id);
+      if (result.success) {
+        toast.success("Trade supprimé avec succès.");
+        loadData();
+      } else {
+        toast.error(result.error || "Erreur lors de la suppression du trade.");
+      }
+    } catch (error) {
+      toast.error("Une erreur inattendue est survenue lors de la suppression.");
+      console.error("Delete trade error:", error);
+    } finally {
+      setIsDeletingTrade(false);
+      setIsDeleteModalOpen(false);
+      setTradeToDelete(null);
+    }
   };
 
   const yearOptions = useMemo(() => {
@@ -200,7 +245,7 @@ export default function JournalPage() {
             waveFrequency={0.5}
             pixelSize={1}
             colorNum={5}
-            waveSpeed={0.01}
+            waveSpeed={0.1}
             enableMouseInteraction={true}
             mouseRadius={0.3}
           />
@@ -297,16 +342,16 @@ export default function JournalPage() {
             {/* Section des Graphiques */}
             {!isLoading && filteredTrades.length > 0 && (
               <div className="mb-8 grid grid-cols-1 lg:grid-cols-[auto,1fr] gap-6 items-stretch">
-  <div className="flex justify-start">
-    <WinrateDistributionChart trades={filteredTrades} />
-  </div>
-  <div className="flex flex-col justify-center">
-    <SessionPerformanceChart trades={filteredTrades} />
-  </div>
-  <div className="lg:col-span-2">
-    <CumulativePnlChart trades={filteredTrades} />
-  </div>
-</div>
+                  <div className="flex justify-start">
+                    <WinrateDistributionChart trades={filteredTrades} />
+                  </div>
+                  <div className="flex flex-col justify-center">
+                    <SessionPerformanceChart trades={filteredTrades} />
+                  </div>
+                  <div className="lg:col-span-2">
+                    <CumulativePnlChart trades={filteredTrades} />
+                  </div>
+                </div>
             )}
             
             {isLoading && filteredTrades.length === 0 && journalData.trades.length > 0 ? (
@@ -318,7 +363,12 @@ export default function JournalPage() {
                     Erreur lors du chargement des données du journal : {journalData.error}
                  </div>
             ) : (
-              <TradesTable trades={filteredTrades} onRowClick={handleRowClick} />
+              <TradesTable 
+                trades={filteredTrades} 
+                onRowClick={handleRowClick} 
+                onEdit={handleOpenEditModal}
+                onDelete={handleOpenDeleteModal} 
+              />
             )}
 
           </div>
@@ -336,10 +386,32 @@ export default function JournalPage() {
           onDataNeedsRefresh={loadData}
         />
         
+        <EditTradeModal
+          isOpen={isEditModalOpen}
+          onClose={handleEditModalClose}
+          trade={tradeToEdit} 
+          assets={journalData.assets}
+          sessions={journalData.sessions}
+          setups={journalData.setups}
+          onDataNeedsRefresh={loadData} 
+        />
+
         <TradeDetailsModal
           isOpen={isDetailsModalOpen}
           onClose={handleDetailsModalClose}
           trade={selectedTrade}
+        />
+
+        <DeleteTradeConfirmationModal
+          isOpen={isDeleteModalOpen}
+          onClose={() => setIsDeleteModalOpen(false)}
+          onConfirm={handleConfirmDelete}
+          tradeIdentifier={
+            tradeToDelete
+              ? `Trade du ${new Date(tradeToDelete.trade_date).toLocaleDateString()} sur ${tradeToDelete.asset_name || 'N/A'}`
+              : null
+          }
+          isPending={isDeletingTrade}
         />
       </div>
     </>

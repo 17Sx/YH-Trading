@@ -21,8 +21,11 @@ export interface Setup {
 export interface Trade {
   id: string;
   trade_date: string; 
+  asset_id?: string | null;
   asset_name?: string | null; 
+  session_id?: string | null;
   session_name?: string | null;
+  setup_id?: string | null;
   setup_name?: string | null;
   risk_input: string;
   profit_loss_amount: number;
@@ -133,6 +136,9 @@ export async function getTrades(): Promise<{ trades: Trade[]; error?: string }> 
     .select(`
       id,
       trade_date,
+      asset_id, 
+      session_id, 
+      setup_id, 
       risk_input,
       profit_loss_amount,
       tradingview_link,
@@ -271,4 +277,89 @@ export async function deleteSession(id: string): Promise<{ success?: boolean; er
 
 export async function deleteSetup(id: string): Promise<{ success?: boolean; error?: string }> {
   return deleteItem(id, "setups");
+}
+
+export async function deleteTrade(id: string): Promise<{ success?: boolean; error?: string }> {
+  const supabase = createSupabaseActionClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (!user) {
+    return { error: "Utilisateur non authentifié." };
+  }
+
+  if (!id) {
+    return { error: "L'ID du trade est requis." };
+  }
+
+  const { error } = await supabase
+    .from("trades")
+    .delete()
+    .eq("id", id)
+    .eq("user_id", user.id);
+
+  if (error) {
+    return { error: error.message };
+  }
+
+  revalidatePath("/journal");
+  return { success: true };
+}
+
+export async function updateTrade(
+  tradeId: string,
+  values: Partial<AddTradeInput> 
+): Promise<{ success?: boolean; error?: string; issues?: z.ZodIssue[] }> {
+  const supabase = createSupabaseActionClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (!user) {
+    return { error: "Utilisateur non authentifié." };
+  }
+
+  // Valider seulement les champs fournis
+  const result = AddTradeSchema.partial().safeParse(values);
+  if (!result.success) {
+    return { error: "Données du formulaire invalides.", issues: result.error.issues };
+  }
+
+  // Construire l'objet de mise à jour uniquement avec les champs validés fournis
+  const updateData: { [key: string]: any } = {};
+  for (const key in result.data) {
+    if (result.data.hasOwnProperty(key) && (result.data as any)[key] !== undefined) {
+      // Gérer le cas des champs optionnels qui pourraient être vides mais pas undefined (ex: "" pour asset_id)
+      if (key === "asset_id" || key === "session_id" || key === "setup_id") {
+        updateData[key] = (result.data as any)[key] === "" ? null : (result.data as any)[key];
+      } else {
+        updateData[key] = (result.data as any)[key];
+      }
+    }
+  }
+  
+  // S'assurer que profit_loss_amount est un nombre si présent
+  if (updateData.profit_loss_amount !== undefined && typeof updateData.profit_loss_amount === 'string') {
+    updateData.profit_loss_amount = parseFloat(updateData.profit_loss_amount);
+    if (isNaN(updateData.profit_loss_amount)) {
+      // Optionnel: retourner une erreur si la conversion échoue et que le champ était intentionnellement fourni
+      // return { error: "Profit/Perte doit être un nombre valide." };
+      delete updateData.profit_loss_amount; // Ou simplement l'ignorer si la conversion n'est pas valide
+    }
+  }
+
+  if (Object.keys(updateData).length === 0) {
+    return { error: "Aucune donnée à mettre à jour." };
+  }
+
+  const { error: updateError } = await supabase
+    .from("trades")
+    .update(updateData)
+    .eq("id", tradeId)
+    .eq("user_id", user.id); 
+
+  if (updateError) {
+    console.error("Erreur de mise à jour Supabase (updateTrade):", updateError);
+    return { error: `Erreur Supabase: ${updateError.message}` };
+  }
+
+  revalidatePath("/journal");
+  return { success: true };
 }
