@@ -178,7 +178,6 @@ export async function getTrades(): Promise<{ trades: Trade[]; error?: string }> 
   return { trades: tradesData };
 }
 
-
 async function addItem(
   itemName: string,
   tableName: "assets" | "sessions" | "setups"
