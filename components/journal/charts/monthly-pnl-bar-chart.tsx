@@ -36,9 +36,9 @@ export function MonthlyPnlBarChart({ data, currencySuffix = '%' }: MonthlyPnlBar
   }
 
   return (
-    <div className="bg-gray-800/70 p-4 rounded-lg shadow-xl backdrop-blur-md border border-gray-700/50 h-85"> {/* Hauteur ajustée */}
+    <div className="bg-gray-800/70 p-4 rounded-lg shadow-xl backdrop-blur-md border border-gray-700/50 min-h-[350px]">
       <h3 className="text-lg font-semibold text-purple-300 mb-4 text-center">Performance Mensuel</h3>
-      <ResponsiveContainer width="100%" height="100%">
+      <ResponsiveContainer width="100%" height={300}>
         <BarChart 
           data={data} 
           margin={{ top: 5, right: 10, left: -25, bottom: 20 }}
