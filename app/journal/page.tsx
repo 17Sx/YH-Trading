@@ -252,7 +252,7 @@ export default function JournalPage() {
         </div>
 
         <div className="relative z-10 min-h-screen flex flex-col items-center justify-start p-4 pt-12 md:pt-16 text-gray-100 pointer-events-none">
-          <div className="w-full max-w-6xl space-y-8 bg-transparent p-0 md:p-4 pointer-events-auto">
+          <div className="w-full max-w-7xl space-y-8 bg-transparent p-0 md:p-4 pointer-events-auto">
             <header className="flex flex-col sm:flex-row justify-between items-center mb-8 px-2 sm:px-0">
               <div className="text-center sm:text-left">
                 <h1 className="text-3xl md:text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-500">
