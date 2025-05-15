@@ -20,8 +20,9 @@ import {
   type Trade,
 } from "@/lib/actions/journal.actions";
 import { useEffect, useState, useTransition, useMemo } from "react";
-import { PlusCircle, CalendarDays } from "lucide-react";
+import { PlusCircle, CalendarDays, File } from "lucide-react";
 import { Toaster, toast } from "sonner";
+import * as XLSX from "xlsx";
 
 interface JournalPageData {
   assets: Asset[];
@@ -234,6 +235,28 @@ export function JournalClient() {
     };
   }, [filteredTrades]);
 
+  // Fonction d'export Excel
+  function exportToExcel(trades: Trade[], filename: string) {
+    if (!trades || trades.length === 0) {
+      toast.error("No trades to export for this period.");
+      return;
+    }
+    const exportData = trades.map(trade => ({
+      Date: trade.trade_date,
+      Asset: trade.asset_name,
+      Session: trade.session_name,
+      Setup: trade.setup_name,
+      Risk: trade.risk_input,
+      PnL: trade.profit_loss_amount,
+      Notes: trade.notes ?? "",
+      Lien: trade.tradingview_link ?? ""
+    }));
+    const ws = XLSX.utils.json_to_sheet(exportData);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Trades");
+    XLSX.writeFile(wb, filename);
+  }
+
   return (
     <>
       <Toaster richColors position="bottom-right" />
@@ -262,6 +285,17 @@ export function JournalClient() {
                   Suivez et analysez vos performances.
                 </p>
               </div>
+              <div className="flex flex-row gap-4">
+              <button
+                type="button"
+                className="mt-4 sm:mt-0 bg-purple-600 hover:bg-purple-700 text-white font-semibold py-2.5 px-5 rounded-md transition-colors duration-300 focus:ring-2 focus:ring-purple-400 focus:ring-offset-2 focus:ring-offset-gray-900 flex items-center"
+                aria-label="Export trades to Excel"
+                onClick={() => exportToExcel(filteredTrades, `trades-${selectedMonth + 1}-${selectedYear}.xlsx`)}
+              >
+                <File size={20} className="mr-2" />
+                Export Excel
+              </button>
+
               <button
                 onClick={() => setIsAddModalOpen(true)}
                 className="mt-4 sm:mt-0 bg-purple-600 hover:bg-purple-700 text-white font-semibold py-2.5 px-5 rounded-md transition-colors duration-300 focus:ring-2 focus:ring-purple-400 focus:ring-offset-2 focus:ring-offset-gray-900 flex items-center"
@@ -269,6 +303,7 @@ export function JournalClient() {
                 <PlusCircle size={20} className="mr-2" />
                 Ajouter un Trade
               </button>
+              </div>
             </header>
             
             {/* Filtres et Stats */}
@@ -370,6 +405,7 @@ export function JournalClient() {
                 onDelete={handleOpenDeleteModal} 
               />
             )}
+
 
           </div>
           <p className="mt-8 mb-4 text-xs text-gray-500 text-center relative z-10 pointer-events-auto">
