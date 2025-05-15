@@ -44,14 +44,6 @@
 
 ---
 
-## 🖼️ Screenshots
-
-| Dashboard                                                                         | Journal                                                                       | Calendar                                                                        |
-| --------------------------------------------------------------------------------- | ----------------------------------------------------------------------------- | ------------------------------------------------------------------------------- |
-| ![Dashboard](https://user-images.githubusercontent.com/placeholder/dashboard.png) | ![Journal](https://user-images.githubusercontent.com/placeholder/journal.png) | ![Calendar](https://user-images.githubusercontent.com/placeholder/calendar.png) |
-
----
-
 ## 🛠️ Getting Started
 
 ### 1. Clone the repository
