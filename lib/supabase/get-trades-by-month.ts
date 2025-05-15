@@ -3,7 +3,7 @@ import type { Trade } from "@/lib/actions/journal.actions";
 
 interface GetTradesByMonthParams {
   year: number;
-  month: number; // 0 = janvier
+  month: number; 
 }
 
 export async function getTradesByMonth({ year, month }: GetTradesByMonthParams): Promise<Trade[]> {
@@ -11,9 +11,8 @@ export async function getTradesByMonth({ year, month }: GetTradesByMonthParams):
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return [];
 
-  // Calculer la plage de dates du mois
   const start = new Date(year, month, 1);
-  const end = new Date(year, month + 1, 0); // dernier jour du mois
+  const end = new Date(year, month + 1, 0); 
   const startStr = start.toISOString().slice(0, 10);
   const endStr = end.toISOString().slice(0, 10);
 

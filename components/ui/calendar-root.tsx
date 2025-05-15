@@ -12,12 +12,11 @@ const PERIODS = [1, 3, 6, 12];
 export function CalendarRoot() {
   const today = new Date();
   const [year, setYear] = useState(today.getFullYear());
-  const [month, setMonth] = useState(today.getMonth()); // 0 = janvier
-  const [period, setPeriod] = useState(1); // nombre de mois affichés
+  const [month, setMonth] = useState(today.getMonth()); 
+  const [period, setPeriod] = useState(1); 
   const [trades, setTrades] = useState<Trade[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Calcule la plage de mois à afficher
   const monthsToShow = Array.from({ length: period }, (_, i) => {
     const d = new Date(year, month - (period - 1) + i, 1);
     return { year: d.getFullYear(), month: d.getMonth() };
@@ -28,7 +27,6 @@ export function CalendarRoot() {
     async function fetchTrades() {
       setLoading(true);
       const supabase = createSupabaseBrowserClient();
-      // Calcule la plage de dates à récupérer
       const first = new Date(monthsToShow[0].year, monthsToShow[0].month, 1);
       const last = new Date(monthsToShow[monthsToShow.length - 1].year, monthsToShow[monthsToShow.length - 1].month + 1, 0);
       const startStr = first.toISOString().slice(0, 10);
@@ -59,7 +57,6 @@ export function CalendarRoot() {
     return () => { isMounted = false; };
   }, [year, month, period]);
 
-  // Navigation multi-mois (avance/recul d'une tranche entière)
   function prevPeriod() {
     const d = new Date(year, month - period, 1);
     setYear(d.getFullYear());

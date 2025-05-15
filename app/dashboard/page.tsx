@@ -18,7 +18,6 @@ interface GlobalStats {
   averageWinningTrade: number;
   averageLosingTrade: number;
   profitFactor: number | null;
-  // TODO: Ajouter d'autres stats pertinentes (ex: plus grosse perte/gain, durée moyenne)
 }
 
 function calculateGlobalStats(trades: Trade[]): GlobalStats {

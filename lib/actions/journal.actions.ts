@@ -174,7 +174,6 @@ export async function getTrades(): Promise<{ trades: Trade[]; error?: string }> 
     };
   }) || [];
 
-  console.log("Données des trades transformées (getTrades):", JSON.stringify(tradesData, null, 2));
 
   return { trades: tradesData };
 }

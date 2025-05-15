@@ -16,8 +16,6 @@ interface ChartData {
 }
 
 export function CumulativePnlChart({ trades }: CumulativePnlChartProps) {
-  // DEBUG: log des props reçues
-  console.log('[CumulativePnlChart] trades reçus:', trades);
   try {
     if (!trades || trades.length === 0) {
       return <div className="text-center text-gray-400 py-8">Aucune donnée pour afficher la courbe de PnL.</div>;
@@ -34,8 +32,6 @@ export function CumulativePnlChart({ trades }: CumulativePnlChartProps) {
         tradePnl: trade.profit_loss_amount,
       };
     });
-    // DEBUG: log des données du graphique
-    console.log('[CumulativePnlChart] chartData:', chartData);
     
     if (chartData.length > 0 && (sortedTrades[0].profit_loss_amount !== 0 || chartData[0].cumulativePnl !== sortedTrades[0].profit_loss_amount)) {
       const firstTradeDate = new Date(sortedTrades[0].trade_date);
@@ -90,7 +86,6 @@ export function CumulativePnlChart({ trades }: CumulativePnlChartProps) {
       </div>
     );
   } catch (err) {
-    // DEBUG: log de l'erreur
     console.error('[CumulativePnlChart] Erreur de rendering:', err);
     return <div className="text-center text-red-400 py-8">Erreur lors de l'affichage du graphique PnL. Vérifiez la console pour plus de détails.</div>;
   }
