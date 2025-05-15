@@ -60,6 +60,7 @@ export function AddTradeModal({
   });
 
   const [itemManagementTarget, setItemManagementTarget] = useState<ItemManagementType>(null);
+  const [durationUnit, setDurationUnit] = useState<'minutes' | 'heures'>('minutes');
   
   useEffect(() => {
     setLocalAssets(assets);
@@ -136,8 +137,12 @@ export function AddTradeModal({
   
 
   const onSubmitTrade: SubmitHandler<AddTradeInput> = async (data) => {
+    let duration = data.duration_minutes;
+    if (duration && durationUnit === 'heures') {
+      duration = duration * 60;
+    }
     try {
-      const result = await addTrade(data);
+      const result = await addTrade({ ...data, duration_minutes: duration });
       if (result.success) {
         toast.success("Trade ajouté avec succès !");
         reset();
@@ -247,6 +252,33 @@ export function AddTradeModal({
                 {errors.setup_id && <p className="mt-1 text-sm text-red-400">{errors.setup_id.message}</p>}
               </div>
             </div>
+
+                        {/* Durée */}
+                        <div>
+              <label htmlFor="duration_minutes" className="block text-sm font-medium text-gray-300 mb-1">Durée</label>
+              <div className="flex gap-2 items-center">
+                <input
+                  type="number"
+                  min="1"
+                  step="1"
+                  {...register("duration_minutes")}
+                  id="duration_minutes"
+                  className={`w-full p-2.5 bg-gray-700 border ${errors.duration_minutes ? 'border-red-500' : 'border-gray-600'} rounded-md focus:ring-purple-500 focus:border-purple-500`}
+                  placeholder="Ex: 45"
+                />
+                <select
+                  value={durationUnit}
+                  onChange={e => setDurationUnit(e.target.value as 'minutes' | 'heures')}
+                  className="bg-gray-700 border border-gray-600 text-gray-200 text-sm rounded-md focus:ring-purple-500 focus:border-purple-500 p-2.5"
+                >
+                  <option value="minutes">minutes</option>
+                  <option value="heures">heures</option>
+                </select>
+              </div>
+              {errors.duration_minutes && (
+                <p className="text-red-400 text-xs mt-1">{errors.duration_minutes.message as string}</p>
+              )}
+            </div>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
               <div>
@@ -287,6 +319,7 @@ export function AddTradeModal({
               <textarea {...register("notes")} id="notes" rows={3} placeholder="Vos réflexions sur le trade, émotions, etc." className={`w-full p-2.5 bg-gray-700 border ${errors.notes ? 'border-red-500' : 'border-gray-600'} rounded-md focus:ring-purple-500 focus:border-purple-500`}></textarea>
               {errors.notes && <p className="mt-1 text-sm text-red-400">{errors.notes.message}</p>}
             </div>
+
 
             <div className="flex justify-end pt-2">
               <button

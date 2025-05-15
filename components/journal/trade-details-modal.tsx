@@ -64,6 +64,10 @@ export function TradeDetailsModal({
             <span className="font-medium text-gray-400 block mb-0.5">Profit/Perte:</span>
             <p className={pnlColorClass}>{formattedPnl}</p>
           </div>
+          <div>
+            <span className="font-medium text-gray-400 block mb-0.5">Durée:</span>
+            <p>{typeof trade.duration_minutes === 'number' ? (trade.duration_minutes % 60 === 0 ? `${trade.duration_minutes / 60} h` : `${trade.duration_minutes} min`) : '—'}</p>
+          </div>
 
           {trade.tradingview_link && (
             <div className="md:col-span-2">

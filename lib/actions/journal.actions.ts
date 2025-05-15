@@ -31,6 +31,7 @@ export interface Trade {
   profit_loss_amount: number;
   tradingview_link?: string | null;
   notes?: string | null;
+  duration_minutes?: number | null;
   created_at: string;
 }
 
@@ -102,7 +103,8 @@ export async function addTrade(
     risk_input, 
     profit_loss_amount, 
     tradingview_link, 
-    notes 
+    notes, 
+    duration_minutes
   } = result.data;
 
   const { error: insertError } = await supabase.from("trades").insert({
@@ -115,6 +117,7 @@ export async function addTrade(
     profit_loss_amount,
     tradingview_link: tradingview_link || null, 
     notes: notes || null, 
+    duration_minutes: duration_minutes ?? null,
   });
 
   if (insertError) {

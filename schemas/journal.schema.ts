@@ -15,6 +15,13 @@ export const AddTradeSchema = z.object({
   ),
   tradingview_link: z.string().url("Le lien TradingView doit être une URL valide.").optional().nullable().or(z.literal('')),
   notes: z.string().optional().nullable(),
+  duration_minutes: z.preprocess(
+    (val) => val === '' ? undefined : Number(val),
+    z.number({ invalid_type_error: "La durée doit être un nombre (minutes)." })
+      .int("La durée doit être un entier.")
+      .positive("La durée doit être positive.")
+      .optional()
+  ),
 });
 
 export type AddTradeInput = z.infer<typeof AddTradeSchema>;

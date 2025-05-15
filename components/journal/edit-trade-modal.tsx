@@ -58,10 +58,12 @@ export function EditTradeModal({
       profit_loss_amount: 0,
       tradingview_link: "",
       notes: "",
+      duration_minutes: undefined,
     },
   });
 
   const [itemManagementTarget, setItemManagementTarget] = useState<ItemManagementType>(null);
+  const [durationUnit, setDurationUnit] = useState<'minutes' | 'heures'>('minutes');
   
   useEffect(() => {
     setLocalAssets(assets);
@@ -77,6 +79,13 @@ export function EditTradeModal({
 
   useEffect(() => {
     if (isOpen && trade) {
+      let unit: 'minutes' | 'heures' = 'minutes';
+      let value = trade.duration_minutes || undefined;
+      if (value && value % 60 === 0) {
+        unit = 'heures';
+        value = value / 60;
+      }
+      setDurationUnit(unit);
       reset({
         trade_date: trade.trade_date ? new Date(trade.trade_date).toISOString().split("T")[0] : "",
         asset_id: trade.asset_id || "",
@@ -86,12 +95,15 @@ export function EditTradeModal({
         profit_loss_amount: trade.profit_loss_amount || 0,
         tradingview_link: trade.tradingview_link || "",
         notes: trade.notes || "",
+        duration_minutes: value,
       });
     } else if (!isOpen) {
+      setDurationUnit('minutes');
       reset({ 
         trade_date: new Date().toISOString().split("T")[0],
         asset_id: "", session_id: "", setup_id: "", 
-        risk_input: "", profit_loss_amount: 0, tradingview_link: "", notes: ""
+        risk_input: "", profit_loss_amount: 0, tradingview_link: "", notes: "",
+        duration_minutes: undefined,
       });
     }
   }, [isOpen, trade, reset]);
@@ -155,6 +167,11 @@ export function EditTradeModal({
       return;
     }
 
+    let duration = data.duration_minutes;
+    if (duration && durationUnit === 'heures') {
+      duration = duration * 60;
+    }
+
     const changedData: Partial<AddTradeInput> = {};
     let hasChanges = false;
 
@@ -191,6 +208,11 @@ export function EditTradeModal({
       hasChanges = true;
     } else if (formPnl === undefined && trade.profit_loss_amount !== null && trade.profit_loss_amount !== undefined) {
 
+    }
+
+    if (duration !== trade?.duration_minutes) {
+      changedData.duration_minutes = duration;
+      hasChanges = true;
     }
 
     if (!hasChanges) {
@@ -395,6 +417,33 @@ export function EditTradeModal({
                 <label htmlFor="edit-notes" className="block text-sm font-medium text-gray-300 mb-1">Notes (Optionnel)</label>
                 <textarea {...register("notes")} id="edit-notes" rows={3} placeholder="Contexte, émotions, leçons apprises..." className={`w-full p-2.5 bg-gray-700 border ${errors.notes ? 'border-red-500' : 'border-gray-600'} rounded-md focus:ring-purple-500 focus:border-purple-500`}></textarea>
                 {errors.notes && <p className="mt-1 text-sm text-red-400">{errors.notes.message}</p>}
+              </div>
+
+              {/* Durée */}
+              <div>
+                <label htmlFor="duration_minutes" className="block text-sm font-medium text-gray-300 mb-1">Durée</label>
+                <div className="flex gap-2 items-center">
+                  <input
+                    type="number"
+                    min="1"
+                    step="1"
+                    {...register("duration_minutes")}
+                    id="duration_minutes"
+                    className={`w-full p-2.5 bg-gray-700 border ${errors.duration_minutes ? 'border-red-500' : 'border-gray-600'} rounded-md focus:ring-purple-500 focus:border-purple-500`}
+                    placeholder="Ex: 45"
+                  />
+                  <select
+                    value={durationUnit}
+                    onChange={e => setDurationUnit(e.target.value as 'minutes' | 'heures')}
+                    className="bg-gray-700 border border-gray-600 text-gray-200 text-sm rounded-md focus:ring-purple-500 focus:border-purple-500 p-2.5"
+                  >
+                    <option value="minutes">minutes</option>
+                    <option value="heures">heures</option>
+                  </select>
+                </div>
+                {errors.duration_minutes && (
+                  <p className="text-red-400 text-xs mt-1">{errors.duration_minutes.message as string}</p>
+                )}
               </div>
 
               <div className="flex justify-end space-x-3 pt-2">

@@ -245,6 +245,7 @@ export function JournalClient() {
       Date: trade.trade_date,
       Asset: trade.asset_name,
       Session: trade.session_name,
+      'Durée': typeof trade.duration_minutes === 'number' ? (trade.duration_minutes % 60 === 0 ? `${trade.duration_minutes / 60} h` : `${trade.duration_minutes} min`) : '',
       Setup: trade.setup_name,
       Risk: trade.risk_input,
       PnL: trade.profit_loss_amount,
