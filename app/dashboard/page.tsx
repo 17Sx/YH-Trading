@@ -6,6 +6,8 @@ import { BuildingStorefrontIcon, ChartBarIcon, PresentationChartLineIcon, ScaleI
 import Dither from "@/components/ui/Dither/Dither";
 import { format, parseISO } from 'date-fns';
 import { fr } from 'date-fns/locale';
+import { createSupabaseServerClient } from '@/lib/supabase/server';
+import { redirect } from 'next/navigation';
 
 interface GlobalStats {
   totalTrades: number;
@@ -108,6 +110,10 @@ function calculateMonthlyPnl(trades: Trade[]): MonthlyPnlData[] {
 }
 
 export default async function DashboardPage() {
+  const supabase = createSupabaseServerClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) redirect('/auth');
+
   const { trades, error: tradesError } = await getTrades();
   const primaryAccentRGB: [number, number, number] = [0.494, 0.357, 0.937];
 

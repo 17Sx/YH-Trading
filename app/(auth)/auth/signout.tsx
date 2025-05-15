@@ -1,10 +1,9 @@
 import { createSupabaseServerClient } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
 
-export default async function Home() {
+export default async function SignOutPage() {
   const supabase = createSupabaseServerClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (user) redirect('/dashboard');
-  else redirect('/auth');
+  await supabase.auth.signOut();
+  redirect('/auth');
   return null;
-}
+} 
