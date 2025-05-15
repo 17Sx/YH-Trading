@@ -1,36 +1,157 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# 📈 YH Trading Journal
 
-## Getting Started
+![Next.js](https://img.shields.io/badge/Next.js-14.2.3-blue?logo=nextdotjs)
+![TypeScript](https://img.shields.io/badge/TypeScript-5.x-blue?logo=typescript)
+![TailwindCSS](https://img.shields.io/badge/TailwindCSS-3.x-38BDF8?logo=tailwindcss)
+![Supabase](https://img.shields.io/badge/Supabase-2.x-3ECF8E?logo=supabase)
+![License](https://img.shields.io/badge/license-MIT-green)
 
-First, run the development server:
+> **YH Trading Journal** is a modern, full-featured web application to track, analyze, and improve your trading performance.  
+> Designed for traders who want beautiful analytics, seamless journaling, and actionable insights.
+
+---
+
+## ✨ Features
+
+- **Authentication**: Secure sign up & sign in (Supabase Auth)
+- **Dashboard**: Global stats, winrate, PnL, profit factor, and more
+- **Trading Journal**: Add, edit, delete, and review trades with rich details
+- **Charts & Analytics**: Cumulative PnL, monthly PnL, winrate distribution, session performance
+- **Calendar View**: Visualize your trades and performance over time
+- **Responsive UI**: Beautiful, dark-themed, mobile-friendly interface
+- **Customizable**: Manage assets, sessions, setups, and notes
+- **Export/Import**: (Planned) Export your data for further analysis
+
+---
+
+## 📚 Table of Contents
+
+- [Demo](#demo)
+- [Screenshots](#screenshots)
+- [Getting Started](#getting-started)
+- [Project Structure](#project-structure)
+- [Core Concepts](#core-concepts)
+- [Tech Stack](#tech-stack)
+- [Contributing](#contributing)
+- [License](#license)
+
+---
+
+## 🚀 Demo
+
+> https://yhtrading.vercel.app/
+> You can run the project locally by following the instructions below.
+
+---
+
+## 🖼️ Screenshots
+
+| Dashboard                                                                         | Journal                                                                       | Calendar                                                                        |
+| --------------------------------------------------------------------------------- | ----------------------------------------------------------------------------- | ------------------------------------------------------------------------------- |
+| ![Dashboard](https://user-images.githubusercontent.com/placeholder/dashboard.png) | ![Journal](https://user-images.githubusercontent.com/placeholder/journal.png) | ![Calendar](https://user-images.githubusercontent.com/placeholder/calendar.png) |
+
+---
+
+## 🛠️ Getting Started
+
+### 1. Clone the repository
+
+```bash
+git clone https://github.com/yourusername/YH-Trading.git
+cd YH-Trading
+```
+
+### 2. Install dependencies
+
+```bash
+npm install
+```
+
+### 3. Configure environment variables
+
+Copy `.env.example` to `.env.local` and fill in your Supabase credentials:
+
+```bash
+cp .env.example .env.local
+```
+
+### 4. Run the development server
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Visit [http://localhost:3000](http://localhost:3000) to see the app.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+---
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## 🗂️ Project Structure
 
-## Learn More
+```
+.
+├── app/                # Next.js app directory (routing, pages)
+│   ├── dashboard/      # Dashboard overview
+│   ├── journal/        # Trading journal (CRUD, analytics)
+│   ├── calendar/       # Calendar view of trades
+│   └── (auth)/auth/    # Authentication pages
+├── components/         # Reusable UI and feature components
+│   ├── journal/        # Journal-specific components (modals, tables, charts)
+│   ├── auth/           # Auth forms
+│   └── ui/             # UI primitives (buttons, dialogs, calendar, etc.)
+├── lib/                # API, actions, and utility functions
+├── public/             # Static assets
+├── schemas/            # Zod validation schemas
+├── tailwind.config.ts  # TailwindCSS configuration
+└── ...
+```
 
-To learn more about Next.js, take a look at the following resources:
+---
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## 🧠 Core Concepts
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+### Authentication
 
-## Deploy on Vercel
+- Secure sign up and sign in using Supabase Auth.
+- Only authenticated users can access the dashboard, journal, and calendar.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+### Dashboard
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- **Global statistics**: Total trades, winrate, total/average PnL, profit factor, and more.
+- **Charts**: Cumulative PnL and monthly PnL bar charts for quick performance overview.
+
+### Trading Journal
+
+- **CRUD**: Add, edit, delete, and view trades.
+- **Details**: Track asset, session, setup, risk, PnL, notes, and TradingView links.
+- **Analytics**: Winrate distribution, session performance, and more.
+- **Modals**: Intuitive modals for trade management.
+
+### Calendar
+
+- Visualize trades over 1, 3, 6, or 12 months.
+- Quickly spot trading patterns and performance streaks.
+
+### UI/UX
+
+- Modern, dark-themed, responsive design.
+- Smooth transitions and interactive charts.
+- Built with accessibility and user experience in mind.
+
+---
+
+## 🏗️ Tech Stack
+
+- **Next.js 14** (App Router, SSR)
+- **TypeScript**
+- **TailwindCSS** (with custom themes and animations)
+- **Supabase** (Auth & Database)
+- **React Hook Form** & **Zod** (forms & validation)
+- **Recharts** (data visualization)
+- **Framer Motion** (animations)
+- **Radix UI** (accessible dialogs)
+- **Three.js** (background effects)
+- **Sonner** (toasts/notifications)
+
+---
+
+> _Made with ❤️ by 17Sx!_
