@@ -41,5 +41,3 @@ export async function getTradesByMonth({ year, month }: GetTradesByMonthParams):
   }
   return data as Trade[];
 } 
-
-//test
