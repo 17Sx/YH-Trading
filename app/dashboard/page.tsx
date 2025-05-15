@@ -167,15 +167,15 @@ export default async function DashboardPage() {
 
           <section className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 md:gap-4">
             <StatCard title="Trades Totaux" value={stats.totalTrades.toString()} icon={<BuildingStorefrontIcon className="h-6 w-6 md:h-7 md:w-7 text-purple-400" />} />
-            <StatCard title="Winrate" value={`${stats.winRate}${pnlSuffix}`} icon={<ChartBarIcon className="h-6 w-6 md:h-7 md:w-7 text-purple-400" />} />
-            <StatCard title="Performance Total" value={`${stats.totalPnl}${stats.totalPnl !== 0 ? pnlSuffix : ''}`} icon={<ScaleIcon className="h-6 w-6 md:h-7 md:w-7 text-purple-400" />} />
-            <StatCard title="PnL Moyen/Trade" value={`${stats.averagePnl}${stats.averagePnl !== 0 ? pnlSuffix : ''}`} icon={<PresentationChartLineIcon className="h-6 w-6 md:h-7 md:w-7 text-purple-400" />} />
+            <StatCard title="Winrate" value={`${stats.winRate.toFixed(2)}${pnlSuffix}`} icon={<ChartBarIcon className="h-6 w-6 md:h-7 md:w-7 text-purple-400" />} />
+            <StatCard title="Performance Total" value={`${stats.totalPnl.toFixed(2)}${stats.totalPnl !== 0 ? pnlSuffix : ''}`} icon={<ScaleIcon className="h-6 w-6 md:h-7 md:w-7 text-purple-400" />} />
+            <StatCard title="PnL Moyen/Trade" value={`${stats.averagePnl.toFixed(2)}${stats.averagePnl !== 0 ? pnlSuffix : ''}`} icon={<PresentationChartLineIcon className="h-6 w-6 md:h-7 md:w-7 text-purple-400" />} />
             <StatCard title="Gagnants (TP)" value={stats.winningTradesCount.toString()} />
             <StatCard title="Perdants (SL)" value={stats.losingTradesCount.toString()} />
             <StatCard title="Neutres (BE)" value={stats.breakevenTradesCount.toString()} />
-            <StatCard title="Gain Moyen" value={`${stats.averageWinningTrade}${stats.averageWinningTrade !== 0 ? pnlSuffix : ''}`} />
-            <StatCard title="Perte Moyenne" value={`${stats.averageLosingTrade}${stats.averageLosingTrade !== 0 ? pnlSuffix : ''}`} />
-            <StatCard title="Profit factor" value={stats.profitFactor !== null ? stats.profitFactor.toString() : "N/A"} />
+            <StatCard title="Gain Moyen" value={`${stats.averageWinningTrade.toFixed(2)}${stats.averageWinningTrade !== 0 ? pnlSuffix : ''}`} />
+            <StatCard title="Perte Moyenne" value={`${stats.averageLosingTrade.toFixed(2)}${stats.averageLosingTrade !== 0 ? pnlSuffix : ''}`} />
+            <StatCard title="Profit factor" value={stats.profitFactor !== null ? stats.profitFactor.toFixed(2) : "N/A"} />
           </section>
           
           <section className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6 flex-grow">

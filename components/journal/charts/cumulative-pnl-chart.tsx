@@ -57,7 +57,7 @@ export function CumulativePnlChart({ trades }: CumulativePnlChartProps) {
             <CartesianGrid strokeDasharray="3 3" strokeOpacity={0.2}/>
             <XAxis dataKey="date" tick={{ fontSize: 10, fill: '#9ca3af' }} angle={-30} textAnchor="end" />
             <YAxis 
-              tickFormatter={(value) => `${value}%`} 
+              tickFormatter={(value) => `${value.toFixed(2)}%`} 
               tick={{ fontSize: 12, fill: '#9ca3af' }}
               domain={['auto', 'auto']} 
             />

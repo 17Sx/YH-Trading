@@ -52,9 +52,9 @@ export function MonthlyPnlBarChart({ data, currencySuffix = '%' }: MonthlyPnlBar
             interval={0} 
           />
           <YAxis 
-            tickFormatter={(value) => `${value.toFixed(0)}${currencySuffix}`} 
+            tickFormatter={(value) => `${value.toFixed(2)}${currencySuffix}`} 
             tick={{ fontSize: 12, fill: '#9ca3af' }}
-            allowDecimals={false}
+            allowDecimals={true}
           />
           <Tooltip content={<CustomTooltip currencySuffix={currencySuffix} />} cursor={{ fill: 'rgba(126, 91, 239, 0.1)' }} />
           <Bar dataKey="pnl" name="PnL Mensuel">
