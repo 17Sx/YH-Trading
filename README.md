@@ -24,16 +24,6 @@
 
 ---
 
-## 📚 Table of Contents
-
-- [Demo](#demo)
-- [Getting Started](#getting-started)
-- [Project Structure](#project-structure)
-- [Core Concepts](#core-concepts)
-- [Tech Stack](#tech-stack)
-
----
-
 ## 🚀 Demo
 
 > https://yhtrading.vercel.app/
