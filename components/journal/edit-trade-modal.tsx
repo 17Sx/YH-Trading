@@ -499,6 +499,7 @@ export function EditTradeModal({
                 await handleListChangedInManageModal(itemManagementTarget, newItemId);
             }
           }}
+          journalId={journalId}
         />
       )}
     </>
