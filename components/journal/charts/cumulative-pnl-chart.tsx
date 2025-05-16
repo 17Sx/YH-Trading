@@ -1,6 +1,6 @@
 "use client";
 
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import type { Trade } from '@/lib/actions/journal.actions';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
@@ -53,7 +53,13 @@ export function CumulativePnlChart({ trades }: CumulativePnlChartProps) {
       <div className="bg-gray-800/70 p-4 rounded-lg shadow-xl backdrop-blur-md border border-gray-700/50 min-h-[350px]"> 
         <h3 className="text-lg font-semibold text-purple-300 mb-4 text-center">Performance Cumulative (%)</h3>
         <ResponsiveContainer width="100%" height={300}>
-        <LineChart data={chartData} margin={{ top: 5, right: 20, left: -20, bottom: 20 }}> 
+          <AreaChart data={chartData} margin={{ top: 5, right: 20, left: -20, bottom: 20 }}> 
+            <defs>
+              <linearGradient id="colorPnl" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="5%" stopColor="#7e5bef" stopOpacity={0.8}/>
+                <stop offset="95%" stopColor="#7e5bef" stopOpacity={0.1}/>
+              </linearGradient>
+            </defs>
             <CartesianGrid strokeDasharray="3 3" strokeOpacity={0.2}/>
             <XAxis dataKey="date" tick={{ fontSize: 10, fill: '#9ca3af' }} angle={-30} textAnchor="end" />
             <YAxis 
@@ -72,16 +78,16 @@ export function CumulativePnlChart({ trades }: CumulativePnlChartProps) {
               }}
             />
             <Legend wrapperStyle={{ fontSize: '14px' }} />
-            <Line 
+            <Area 
               type="monotone" 
               dataKey="cumulativePnl" 
-              name=" " 
+              name="PnL Cumulatif" 
               stroke="#7e5bef" 
-              strokeWidth={2} 
-              dot={{ r: 3, fill: '#7e5bef' }} 
-              activeDot={{ r: 6, stroke: '#fff', fill: '#7e5bef' }} 
+              fillOpacity={1} 
+              fill="url(#colorPnl)" 
+              strokeWidth={2}
             />
-          </LineChart>
+          </AreaChart>
         </ResponsiveContainer>
       </div>
     );
