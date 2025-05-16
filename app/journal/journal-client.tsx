@@ -235,23 +235,169 @@ export function JournalClient() {
     };
   }, [filteredTrades]);
 
-  // Fonction d'export Excel
   function exportToExcel(trades: Trade[], filename: string) {
     if (!trades || trades.length === 0) {
       toast.error("No trades to export for this period.");
       return;
     }
-    const exportData = trades.map(trade => ({
-      Date: trade.trade_date,
-      Actif: trade.asset_name,
-      Session: trade.session_name,
-      Risk: trade.risk_input,
-      Profit: trade.profit_loss_amount,
-      Setup: trade.setup_name,
-      Notes: trade.notes ?? "",
-      Lien: trade.tradingview_link ?? ""
-    }));
+
+    const exportData = trades.map(trade => {
+      const row: { [key: string]: any } = {};
+      // Date (A-F)
+      row['A'] = trade.trade_date;
+      row['B'] = '';
+      row['C'] = '';
+      row['D'] = '';
+      row['E'] = '';
+      row['F'] = '';
+      // Actif (G-K)
+      row['G'] = trade.asset_name;
+      row['H'] = '';
+      row['I'] = '';
+      row['J'] = '';
+      row['K'] = '';
+      // Session (L-P)
+      row['L'] = trade.session_name;
+      row['M'] = '';
+      row['N'] = '';
+      row['O'] = '';
+      row['P'] = '';
+      // / (Q-S)
+      row['Q'] = '';
+      row['R'] = '';
+      row['S'] = '';
+      // / (T-V)
+      row['T'] = '';
+      row['U'] = '';
+      row['V'] = '';
+      // / (W-Y)
+      row['W'] = '';
+      row['X'] = '';
+      row['Y'] = '';
+      // Risk (Z-AB)
+      row['Z'] = trade.risk_input;
+      row['AA'] = '';
+      row['AB'] = '';
+      // Profit (AC-AE)
+      row['AC'] = trade.profit_loss_amount;
+      row['AD'] = '';
+      row['AE'] = '';
+      // Setup (AF-AJ)
+      row['AF'] = trade.setup_name;
+      row['AG'] = '';
+      row['AH'] = '';
+      row['AI'] = '';
+      row['AJ'] = '';
+      // Notes (AK-AX)
+      row['AK'] = trade.notes ?? '';
+      for (let col of ['AL','AM','AN','AO','AP','AQ','AR','AS','AT','AU','AV','AW','AX']) row[col] = '';
+      // Lien (AY-BC)
+      row['AY'] = trade.tradingview_link ?? '';
+      row['AZ'] = '';
+      row['BA'] = '';
+      row['BB'] = '';
+      row['BC'] = '';
+      return row;
+    });
+
     const ws = XLSX.utils.json_to_sheet(exportData);
+    ws['!cols'] = [
+      { wch: 12 }, // A
+      { wch: 2 },  // B
+      { wch: 2 },  // C
+      { wch: 2 },  // D
+      { wch: 2 },  // E
+      { wch: 2 },  // F
+      { wch: 15 }, // G (Actif)
+      { wch: 2 },  // H
+      { wch: 2 },  // I
+      { wch: 2 },  // J
+      { wch: 2 },  // K
+      { wch: 12 }, // L (Session)
+      { wch: 2 },  // M
+      { wch: 2 },  // N
+      { wch: 2 },  // O
+      { wch: 2 },  // P
+      { wch: 2 },  // Q
+      { wch: 2 },  // R
+      { wch: 2 },  // S
+      { wch: 2 },  // T
+      { wch: 2 },  // U
+      { wch: 2 },  // V
+      { wch: 2 },  // W
+      { wch: 2 },  // X
+      { wch: 2 },  // Y
+      { wch: 8 },  // Z (Risk)
+      { wch: 2 },  // AA
+      { wch: 2 },  // AB
+      { wch: 8 },  // AC (Profit)
+      { wch: 2 },  // AD
+      { wch: 2 },  // AE
+      { wch: 12 }, // AF (Setup)
+      { wch: 2 },  // AG
+      { wch: 2 },  // AH
+      { wch: 2 },  // AI
+      { wch: 2 },  // AJ
+      { wch: 20 }, // AK (Notes)
+      { wch: 2 },  // AL
+      { wch: 2 },  // AM
+      { wch: 2 },  // AN
+      { wch: 2 },  // AO
+      { wch: 2 },  // AP
+      { wch: 2 },  // AQ
+      { wch: 2 },  // AR
+      { wch: 2 },  // AS
+      { wch: 2 },  // AT
+      { wch: 2 },  // AU
+      { wch: 2 },  // AV
+      { wch: 2 },  // AW
+      { wch: 2 },  // AX
+      { wch: 30 }, // AY (Lien)
+      { wch: 2 },  // AZ
+      { wch: 2 },  // BA
+      { wch: 2 },  // BB
+      { wch: 2 },  // BC
+    ];
+
+    const horizontalMerges = [
+      { s: { r: 0, c: 0 }, e: { r: 0, c: 5 } },    // Date (A-F)
+      { s: { r: 0, c: 6 }, e: { r: 0, c: 10 } },   // Actif (G-K)
+      { s: { r: 0, c: 11 }, e: { r: 0, c: 15 } },  // Session (L-P)
+      { s: { r: 0, c: 16 }, e: { r: 0, c: 18 } },  // / (Q-S)
+      { s: { r: 0, c: 19 }, e: { r: 0, c: 21 } },  // / (T-V)
+      { s: { r: 0, c: 22 }, e: { r: 0, c: 24 } },  // / (W-Y)
+      { s: { r: 0, c: 25 }, e: { r: 0, c: 27 } },  // Risk (Z-AB)
+      { s: { r: 0, c: 28 }, e: { r: 0, c: 30 } },  // Profit (AC-AE)
+      { s: { r: 0, c: 31 }, e: { r: 0, c: 35 } },  // Setup (AF-AJ)
+      { s: { r: 0, c: 36 }, e: { r: 0, c: 49 } },  // Notes (AK-AX)
+      { s: { r: 0, c: 50 }, e: { r: 0, c: 54 } },  // Lien (AY-BC)
+    ];
+
+    const verticalMerges = trades.flatMap((_, rowIndex) => [
+      { s: { r: rowIndex + 1, c: 0 }, e: { r: rowIndex + 1, c: 5 } },    // Date (A-F)
+      { s: { r: rowIndex + 1, c: 6 }, e: { r: rowIndex + 1, c: 10 } },   // Actif (G-K)
+      { s: { r: rowIndex + 1, c: 11 }, e: { r: rowIndex + 1, c: 15 } },  // Session (L-P)
+      { s: { r: rowIndex + 1, c: 16 }, e: { r: rowIndex + 1, c: 18 } },  // / (Q-S)
+      { s: { r: rowIndex + 1, c: 19 }, e: { r: rowIndex + 1, c: 21 } },  // / (T-V)
+      { s: { r: rowIndex + 1, c: 22 }, e: { r: rowIndex + 1, c: 24 } },  // / (W-Y)
+      { s: { r: rowIndex + 1, c: 25 }, e: { r: rowIndex + 1, c: 27 } },  // Risk (Z-AB)
+      { s: { r: rowIndex + 1, c: 28 }, e: { r: rowIndex + 1, c: 30 } },  // Profit (AC-AE)
+      { s: { r: rowIndex + 1, c: 31 }, e: { r: rowIndex + 1, c: 35 } },  // Setup (AF-AJ)
+      { s: { r: rowIndex + 1, c: 36 }, e: { r: rowIndex + 1, c: 49 } },  // Notes (AK-AX)
+      { s: { r: rowIndex + 1, c: 50 }, e: { r: rowIndex + 1, c: 54 } },  // Lien (AY-BC)
+    ]);
+
+    ws['A1'] = { v: 'Date' };
+    ws['G1'] = { v: 'Actif' };
+    ws['L1'] = { v: 'Session' };
+    ws['Z1'] = { v: 'Risk' };
+    ws['AC1'] = { v: 'Profit' };
+    ws['AF1'] = { v: 'Setup' };
+    ws['AK1'] = { v: 'Notes' };
+    ws['AY1'] = { v: 'Lien' };
+
+    ws['!merges'] = [...horizontalMerges, ...verticalMerges];
+
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Trades");
     XLSX.writeFile(wb, filename);
