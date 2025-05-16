@@ -12,66 +12,56 @@ interface JournalClientProps {
 }
 
 export function JournalClient({ journal }: JournalClientProps) {
-  const [isAddTradeModalOpen, setIsAddTradeModalOpen] = useState(false);
+  const router = useRouter();
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [assets, setAssets] = useState([]);
   const [sessions, setSessions] = useState([]);
   const [setups, setSetups] = useState([]);
-  const router = useRouter();
+  const [isLoading, setIsLoading] = useState(true);
 
   const loadData = async () => {
     const [assetsData, sessionsData, setupsData] = await Promise.all([
-      getAssets(),
-      getSessions(),
-      getSetups(),
+      getAssets(journal.id),
+      getSessions(journal.id),
+      getSetups(journal.id),
     ]);
 
-    setAssets(assetsData.assets || []);
-    setSessions(sessionsData.sessions || []);
-    setSetups(setupsData.setups || []);
+    if (assetsData.assets) setAssets(assetsData.assets);
+    if (sessionsData.sessions) setSessions(sessionsData.sessions);
+    if (setupsData.setups) setSetups(setupsData.setups);
+    setIsLoading(false);
   };
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="flex items-center gap-4 mb-6">
+    <div className="min-h-screen bg-gray-900">
+      <div className="container mx-auto px-4 py-8">
         <button
-          onClick={() => router.push("/journal")}
-          className="text-gray-400 hover:text-gray-200 transition-colors"
+          onClick={() => router.back()}
+          className="flex items-center text-gray-400 hover:text-gray-200 mb-6"
         >
-          <ArrowLeft size={24} />
+          <ArrowLeft className="w-4 h-4 mr-2" />
+          Retour
         </button>
-        <div>
-          <h1 className="text-2xl font-bold text-white">{journal.name}</h1>
-          {journal.description && (
-            <p className="text-gray-400 mt-1">{journal.description}</p>
-          )}
-        </div>
-      </div>
 
-      <div className="bg-gray-800 rounded-lg p-6">
-        <div className="flex justify-between items-center mb-6">
-          <h2 className="text-xl font-semibold text-white">Trades</h2>
+        <div className="flex justify-between items-center mb-8">
+          <h1 className="text-2xl font-bold text-white">{journal.name}</h1>
           <button
-            onClick={() => setIsAddTradeModalOpen(true)}
-            className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-md transition-colors"
+            onClick={() => setIsAddModalOpen(true)}
+            className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-md"
           >
-            Ajouter un Trade
+            Ajouter un trade
           </button>
         </div>
 
-        {/* Liste des trades à implémenter */}
-        <div className="text-gray-400 text-center py-8">
-          Aucun trade pour le moment
-        </div>
+        {isAddModalOpen && (
+          <AddTradeModal
+            isOpen={isAddModalOpen}
+            onClose={() => setIsAddModalOpen(false)}
+            onDataNeedsRefresh={loadData}
+            journalId={journal.id}
+          />
+        )}
       </div>
-
-      <AddTradeModal
-        isOpen={isAddTradeModalOpen}
-        onClose={() => setIsAddTradeModalOpen(false)}
-        assets={assets}
-        sessions={sessions}
-        setups={setups}
-        onDataNeedsRefresh={loadData}
-      />
     </div>
   );
 } 
