@@ -482,18 +482,9 @@ export function EditTradeModal({
           isOpen={!!itemManagementTarget}
           onClose={() => setItemManagementTarget(null)}
           itemTypeLabel={currentItemTypeLabel}
-          items={
-            itemManagementTarget === "asset" ? localAssets :
-            itemManagementTarget === "session" ? localSessions : localSetups
-          }
-          addItemAction={
-            itemManagementTarget === "asset" ? addAsset :
-            itemManagementTarget === "session" ? addSession : addSetup
-          }
-          deleteItemAction={
-            itemManagementTarget === "asset" ? deleteAsset :
-            itemManagementTarget === "session" ? deleteSession : deleteSetup
-          }
+          items={currentItems}
+          addItemAction={currentAddItemAction}
+          deleteItemAction={currentDeleteItemAction}
           onListChanged={async (newItemId?: string) => {
             if (itemManagementTarget) { 
                 await handleListChangedInManageModal(itemManagementTarget, newItemId);

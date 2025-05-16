@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Plus } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { CreateJournalModal } from "./create-journal-modal";
 
 interface Journal {
   id: string;
