@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { AddTradeModal } from "@/components/journal/add-trade-modal";
-import { Journal } from "@/lib/actions/journal.actions";
+import { Journal, Asset, Session, Setup } from "@/lib/actions/journal.actions";
 import { getAssets, getSessions, getSetups } from "@/lib/actions/journal.actions";
 import { ArrowLeft } from "lucide-react";
 
@@ -14,9 +14,9 @@ interface JournalClientProps {
 export function JournalClient({ journal }: JournalClientProps) {
   const router = useRouter();
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
-  const [assets, setAssets] = useState([]);
-  const [sessions, setSessions] = useState([]);
-  const [setups, setSetups] = useState([]);
+  const [assets, setAssets] = useState<Asset[]>([]);
+  const [sessions, setSessions] = useState<Session[]>([]);
+  const [setups, setSetups] = useState<Setup[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   const loadData = async () => {
