@@ -24,4 +24,11 @@ export const AddListItemSchema = z.object({
   name: z.string().min(1, "Le nom est requis.").max(100, "Le nom ne peut pas dépasser 100 caractères."),
 });
 
-export type AddListItemInput = z.infer<typeof AddListItemSchema>; 
+export type AddListItemInput = z.infer<typeof AddListItemSchema>;
+
+export const EditJournalSchema = z.object({
+  name: z.string().min(1, "Le nom est requis").max(100, "Le nom ne peut pas dépasser 100 caractères"),
+  description: z.string().max(500, "La description ne peut pas dépasser 500 caractères").optional(),
+});
+
+export type EditJournalInput = z.infer<typeof EditJournalSchema>; 

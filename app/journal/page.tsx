@@ -7,6 +7,7 @@ import { PageLoading } from "@/components/ui/page-loading";
 import { BookOpen, PlusCircle, ArrowRight, Pencil, Trash2, X, Loader2 } from "lucide-react";
 import Dither from "@/components/ui/Dither/Dither";
 import { toast } from "sonner";
+import { EditJournalModal } from "@/components/journal/edit-journal-modal";
 
 interface DeleteModalProps {
   isOpen: boolean;
@@ -162,7 +163,9 @@ export default function JournalsPage() {
   const [error, setError] = useState<string | null>(null);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [createModalOpen, setCreateModalOpen] = useState(false);
+  const [editModalOpen, setEditModalOpen] = useState(false);
   const [journalToDelete, setJournalToDelete] = useState<any>(null);
+  const [journalToEdit, setJournalToEdit] = useState<any>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const primaryAccentRGB: [number, number, number] = [0.494, 0.357, 0.937];
@@ -191,10 +194,10 @@ export default function JournalsPage() {
     router.push(`/journal/${journalId}`);
   };
 
-  const handleEditClick = (e: React.MouseEvent, journalId: string) => {
+  const handleEditClick = (e: React.MouseEvent, journal: any) => {
     e.stopPropagation();
-    setIsEditing(true);
-    router.push(`/journal/${journalId}/edit`);
+    setJournalToEdit(journal);
+    setEditModalOpen(true);
   };
 
   const handleDeleteClick = (e: React.MouseEvent, journal: any) => {
@@ -241,6 +244,20 @@ export default function JournalsPage() {
     } catch (error) {
       console.error("Create journal error:", error);
       toast.error("Une erreur inattendue est survenue");
+    }
+  };
+
+  const handleJournalUpdated = async (updatedJournal: any) => {
+    try {
+      const result = await getJournals();
+      if (result.error) {
+        toast.error(result.error);
+      } else {
+        setJournals(result.journals);
+      }
+    } catch (error) {
+      console.error("Erreur lors du rechargement des journaux:", error);
+      toast.error("Erreur lors du rechargement des journaux");
     }
   };
 
@@ -304,7 +321,7 @@ export default function JournalsPage() {
                   </h2>
                   <div className="flex items-center gap-2">
                     <button
-                      onClick={(e) => handleEditClick(e, journal.id)}
+                      onClick={(e) => handleEditClick(e, journal)}
                       className="p-1 text-gray-400 hover:text-purple-400 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                       aria-label="Modifier le journal"
                       disabled={isDeleting || isEditing}
@@ -395,6 +412,15 @@ export default function JournalsPage() {
         onClose={() => setCreateModalOpen(false)}
         onCreate={handleCreateJournal}
       />
+
+      {editModalOpen && journalToEdit && (
+        <EditJournalModal
+          isOpen={editModalOpen}
+          onClose={() => setEditModalOpen(false)}
+          journal={journalToEdit}
+          onJournalUpdated={handleJournalUpdated}
+        />
+      )}
     </div>
   );
 } 
