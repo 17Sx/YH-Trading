@@ -18,11 +18,14 @@ import {
   type Session,
   type Setup,
   type Trade,
+  type Journal,
 } from "@/lib/actions/journal.actions";
 import { useEffect, useState, useTransition, useMemo } from "react";
 import { PlusCircle, CalendarDays, File } from "lucide-react";
 import { Toaster, toast } from "sonner";
 import * as XLSX from "xlsx";
+import { Loading } from "@/components/ui/loading";
+import { PageLoading } from "@/components/ui/page-loading";
 
 interface JournalPageData {
   assets: Asset[];
@@ -32,7 +35,11 @@ interface JournalPageData {
   error?: string;
 }
 
-export function JournalClient() {
+interface JournalClientProps {
+  journal: Journal;
+}
+
+export function JournalClient({ journal }: JournalClientProps) {
   const primaryAccentRGB: [number, number, number] = [0.494, 0.357, 0.937];
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -50,6 +57,7 @@ export function JournalClient() {
   });
   const [isLoading, setIsLoading] = useState(true);
   const [isPending, startTransition] = useTransition();
+  const [isNavigating, setIsNavigating] = useState(false);
 
   const currentYear = new Date().getFullYear();
   const currentMonth = new Date().getMonth(); 
@@ -67,10 +75,10 @@ export function JournalClient() {
           setupsResult,
           tradesResult
         ] = await Promise.all([
-          getAssets(),
-          getSessions(),
-          getSetups(),
-          getTrades(),
+          getAssets(journal.id),
+          getSessions(journal.id),
+          getSetups(journal.id),
+          getTrades(journal.id),
         ]);
 
         const error = assetsResult.error || sessionsResult.error || setupsResult.error || tradesResult.error;
@@ -99,7 +107,7 @@ export function JournalClient() {
   
   useEffect(() => {
     loadData();
-  }, []);
+  }, [journal.id]);
 
   const handleAddModalClose = () => {
     setIsAddModalOpen(false);
@@ -136,7 +144,7 @@ export function JournalClient() {
     if (!tradeToDelete) return;
     setIsDeletingTrade(true);
     try {
-      const result = await deleteTrade(tradeToDelete.id);
+      const result = await deleteTrade(tradeToDelete.id, journal.id);
       if (result.success) {
         toast.success("Trade supprimé avec succès.");
         loadData();
@@ -212,16 +220,10 @@ export function JournalClient() {
     const numBE = filteredTrades.filter(t => t.profit_loss_amount === 0).length;
     const winRate = numTrades > 0 && (numTP + numSL > 0) ? ((numTP / (numTP + numSL)) * 100) : 0;
     
-
     const totalPercentagePerformance = filteredTrades.reduce((acc, trade) => acc + trade.profit_loss_amount, 0);
     
     const performanceDisplay = numTrades > 0 
       ? `${totalPercentagePerformance.toFixed(2)}%` 
-      : "N/A";
-
-    const averageTradePerformance = numTrades > 0 ? totalPercentagePerformance / numTrades : 0;
-    const averageTradePerformanceDisplay = numTrades > 0 
-      ? `${averageTradePerformance.toFixed(2)}%` 
       : "N/A";
 
     return {
@@ -231,7 +233,6 @@ export function JournalClient() {
       numTP,
       numSL,
       numBE,
-      averageTradePerformanceDisplay,
     };
   }, [filteredTrades]);
 
@@ -402,10 +403,17 @@ export function JournalClient() {
     XLSX.utils.book_append_sheet(wb, ws, "Trades");
     XLSX.writeFile(wb, filename);
   }
+
+  const handleNavigation = (path: string) => {
+    setIsNavigating(true);
+    window.location.href = path;
+  };
+
   return (
     <>
       <Toaster richColors position="bottom-right" />
       <div className="relative min-h-screen selection:bg-purple-500 selection:text-white">
+        {(isLoading || isNavigating) && <PageLoading />}
         <div className="absolute inset-0 z-0">
           <Dither
             waveColor={primaryAccentRGB}
@@ -423,31 +431,55 @@ export function JournalClient() {
           <div className="w-full max-w-7xl space-y-8 bg-transparent p-0 md:p-4 pointer-events-auto">
             <header className="flex flex-col sm:flex-row justify-between items-center mb-8 px-2 sm:px-0">
               <div className="text-center sm:text-left">
-                <h1 className="text-3xl md:text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-500">
-                  Journal de Trading
-                </h1>
-                <p className="mt-1 text-md md:text-lg text-gray-300">
-                  Suivez et analysez vos performances.
-                </p>
+                <div className="flex items-center gap-4">
+                  <button
+                    onClick={() => handleNavigation('/journal')}
+                    className="text-gray-400 hover:text-gray-200 transition-colors"
+                    aria-label="Retour à la liste des journaux"
+                    disabled={isLoading || isNavigating}
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M19 12H5M12 19l-7-7 7-7"/>
+                    </svg>
+                  </button>
+                  <div>
+                    <h1 className="text-3xl md:text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-500">
+                      {journal.name}
+                    </h1>
+                    <p className="mt-1 text-md md:text-lg text-gray-300">
+                      {journal.description}
+                    </p>
+                  </div>
+                </div>
               </div>
               <div className="flex flex-row gap-4">
-              <button
-                type="button"
-                className="mt-4 sm:mt-0 bg-purple-600 hover:bg-purple-700 text-white font-semibold py-2.5 px-5 rounded-md transition-colors duration-300 focus:ring-2 focus:ring-purple-400 focus:ring-offset-2 focus:ring-offset-gray-900 flex items-center"
-                aria-label="Export trades to Excel"
-                onClick={() => exportToExcel(filteredTrades, `trades-${selectedMonth + 1}-${selectedYear}.xlsx`)}
-              >
-                <File size={20} className="mr-2" />
-                Export Excel
-              </button>
+                <button
+                  type="button"
+                  className="mt-4 sm:mt-0 bg-purple-600 hover:bg-purple-700 text-white font-semibold py-2.5 px-5 rounded-md transition-colors duration-300 focus:ring-2 focus:ring-purple-400 focus:ring-offset-2 focus:ring-offset-gray-900 flex items-center disabled:opacity-50 disabled:cursor-not-allowed"
+                  aria-label="Export trades to Excel"
+                  onClick={() => exportToExcel(filteredTrades, `trades-${selectedMonth + 1}-${selectedYear}.xlsx`)}
+                  disabled={isLoading || isNavigating}
+                >
+                  {isLoading ? (
+                    <Loading size="sm" variant="default" className="mr-2" />
+                  ) : (
+                    <File size={20} className="mr-2" />
+                  )}
+                  Export Excel
+                </button>
 
-              <button
-                onClick={() => setIsAddModalOpen(true)}
-                className="mt-4 sm:mt-0 bg-purple-600 hover:bg-purple-700 text-white font-semibold py-2.5 px-5 rounded-md transition-colors duration-300 focus:ring-2 focus:ring-purple-400 focus:ring-offset-2 focus:ring-offset-gray-900 flex items-center"
-              >
-                <PlusCircle size={20} className="mr-2" />
-                Ajouter un Trade
-              </button>
+                <button
+                  onClick={() => setIsAddModalOpen(true)}
+                  className="mt-4 sm:mt-0 bg-purple-600 hover:bg-purple-700 text-white font-semibold py-2.5 px-5 rounded-md transition-colors duration-300 focus:ring-2 focus:ring-purple-400 focus:ring-offset-2 focus:ring-offset-gray-900 flex items-center disabled:opacity-50 disabled:cursor-not-allowed"
+                  disabled={isLoading || isNavigating}
+                >
+                  {isLoading ? (
+                    <Loading size="sm" variant="default" className="mr-2" />
+                  ) : (
+                    <PlusCircle size={20} className="mr-2" />
+                  )}
+                  Ajouter un Trade
+                </button>
               </div>
             </header>
             
@@ -491,10 +523,6 @@ export function JournalClient() {
                 <div className="bg-gray-700/50 p-4 rounded-md">
                   <p className="text-sm text-purple-300 mb-1">Performance</p>
                   <p className="text-xl font-semibold text-gray-100">{monthlyStats.performanceDisplay}</p>
-                </div>
-                <div className="bg-gray-700/50 p-4 rounded-md">
-                  <p className="text-sm text-purple-300 mb-1">Perf. Moy/Trade</p>
-                  <p className="text-xl font-semibold text-gray-100">{monthlyStats.averageTradePerformanceDisplay}</p>
                 </div>
                 <div className="bg-gray-700/50 p-4 rounded-md">
                   <p className="text-sm text-purple-300 mb-1">Winrate</p>
@@ -561,20 +589,19 @@ export function JournalClient() {
         <AddTradeModal
           isOpen={isAddModalOpen}
           onClose={handleAddModalClose}
-          assets={journalData.assets}
-          sessions={journalData.sessions}
-          setups={journalData.setups}
           onDataNeedsRefresh={loadData}
+          journalId={journal.id}
         />
         
         <EditTradeModal
           isOpen={isEditModalOpen}
           onClose={handleEditModalClose}
-          trade={tradeToEdit} 
+          trade={tradeToEdit!}
           assets={journalData.assets}
           sessions={journalData.sessions}
           setups={journalData.setups}
-          onDataNeedsRefresh={loadData} 
+          onDataNeedsRefresh={loadData}
+          journalId={journal.id}
         />
 
         <TradeDetailsModal

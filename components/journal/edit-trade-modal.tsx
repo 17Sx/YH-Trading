@@ -18,11 +18,12 @@ import { getAssets, getSessions, getSetups } from "@/lib/actions/journal.actions
 interface EditTradeModalProps {
   isOpen: boolean;
   onClose: () => void;
-  trade: Trade | null; 
+  trade: Trade;
   assets: Asset[];
   sessions: Session[];
   setups: Setup[];
-  onDataNeedsRefresh: () => Promise<void>; 
+  onDataNeedsRefresh: () => Promise<void>;
+  journalId: string;
 }
 
 type ItemManagementType = "asset" | "session" | "setup" | null;
@@ -31,14 +32,15 @@ export function EditTradeModal({
   isOpen,
   onClose,
   trade,
-  assets,
-  sessions,
-  setups,
+  assets: initialAssets,
+  sessions: initialSessions,
+  setups: initialSetups,
   onDataNeedsRefresh,
+  journalId,
 }: EditTradeModalProps) {
-  const [localAssets, setLocalAssets] = useState<Asset[]>(assets);
-  const [localSessions, setLocalSessions] = useState<Session[]>(sessions);
-  const [localSetups, setLocalSetups] = useState<Setup[]>(setups);
+  const [localAssets, setLocalAssets] = useState<Asset[]>(initialAssets);
+  const [localSessions, setLocalSessions] = useState<Session[]>(initialSessions);
+  const [localSetups, setLocalSetups] = useState<Setup[]>(initialSetups);
 
   const {
     control,
@@ -66,16 +68,20 @@ export function EditTradeModal({
   const [durationUnit, setDurationUnit] = useState<'minutes' | 'heures'>('minutes');
   
   useEffect(() => {
-    setLocalAssets(assets);
-  }, [assets]);
-
-  useEffect(() => {
-    setLocalSessions(sessions);
-  }, [sessions]);
-
-  useEffect(() => {
-    setLocalSetups(setups);
-  }, [setups]);
+    const initializeData = async () => {
+      const { assets: newAssets } = await getAssets(journalId);
+      const { sessions: newSessions } = await getSessions(journalId);
+      const { setups: newSetups } = await getSetups(journalId);
+      
+      if (newAssets) setLocalAssets(newAssets);
+      if (newSessions) setLocalSessions(newSessions);
+      if (newSetups) setLocalSetups(newSetups);
+    };
+    
+    if (isOpen) {
+      initializeData();
+    }
+  }, [isOpen, journalId]);
 
   useEffect(() => {
     if (isOpen && trade) {
@@ -113,25 +119,25 @@ export function EditTradeModal({
   };
 
   const refreshLocalAssets = useCallback(async () => {
-    const { assets: newAssets } = await getAssets();
+    const { assets: newAssets } = await getAssets(journalId);
     if (newAssets) setLocalAssets(newAssets);
-  }, []);
+  }, [journalId]);
 
   const refreshLocalSessions = useCallback(async () => {
-    const { sessions: newSessions } = await getSessions();
+    const { sessions: newSessions } = await getSessions(journalId);
     if (newSessions) setLocalSessions(newSessions);
-  }, []);
+  }, [journalId]);
 
   const refreshLocalSetups = useCallback(async () => {
-    const { setups: newSetups } = await getSetups();
+    const { setups: newSetups } = await getSetups(journalId);
     if (newSetups) setLocalSetups(newSetups);
-  }, []);
+  }, [journalId]);
   
   const handleListChangedInManageModal = useCallback(async (itemType: ItemManagementType, newItemId?: string) => {
     let refreshedListIsEmpty = false;
     if (itemType === "asset") {
       await refreshLocalAssets();
-      const currentAssets = await getAssets().then(res => res.assets || []);
+      const currentAssets = await getAssets(journalId).then(res => res.assets || []);
       if (newItemId) setValue("asset_id", newItemId, { shouldValidate: true });
       else if (currentAssets.length > 0 && !currentAssets.find(a => a.id === trade?.asset_id)) {
         setValue("asset_id", currentAssets[0].id, { shouldValidate: true });
@@ -140,7 +146,7 @@ export function EditTradeModal({
       }
     } else if (itemType === "session") {
       await refreshLocalSessions();
-      const currentSessions = await getSessions().then(res => res.sessions || []);
+      const currentSessions = await getSessions(journalId).then(res => res.sessions || []);
       if (newItemId) setValue("session_id", newItemId, { shouldValidate: true });
       else if (currentSessions.length > 0 && !currentSessions.find(s => s.id === trade?.session_id)) {
         setValue("session_id", currentSessions[0].id, { shouldValidate: true });
@@ -149,7 +155,7 @@ export function EditTradeModal({
       }
     } else if (itemType === "setup") {
       await refreshLocalSetups();
-      const currentSetups = await getSetups().then(res => res.setups || []);
+      const currentSetups = await getSetups(journalId).then(res => res.setups || []);
       if (newItemId) setValue("setup_id", newItemId, { shouldValidate: true });
       else if (currentSetups.length > 0 && !currentSetups.find(s => s.id === trade?.setup_id)) {
         setValue("setup_id", currentSetups[0].id, { shouldValidate: true });
@@ -158,7 +164,7 @@ export function EditTradeModal({
       }
     }
     await onDataNeedsRefresh(); 
-  }, [refreshLocalAssets, refreshLocalSessions, refreshLocalSetups, onDataNeedsRefresh, setValue, trade]);
+  }, [refreshLocalAssets, refreshLocalSessions, refreshLocalSetups, onDataNeedsRefresh, setValue, trade, journalId]);
 
 
   const onSubmitEditTrade: SubmitHandler<AddTradeInput> = async (data) => {
@@ -222,7 +228,7 @@ export function EditTradeModal({
     }
     
     try {
-      const result = await updateTrade(trade.id, changedData);
+      const result = await updateTrade(trade.id, changedData, journalId);
       if (result.success) {
         toast.success("Trade modifié avec succès !");
         onClose(); 

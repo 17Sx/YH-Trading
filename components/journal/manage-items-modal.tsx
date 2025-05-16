@@ -15,21 +15,23 @@ type Item = { id: string; name: string; } & (Asset | Session | Setup);
 interface ManageItemsModalProps {
   isOpen: boolean;
   onClose: () => void;
-  itemTypeLabel: string; 
-  items: Item[];
-  addItemAction: (name: string) => Promise<{ data?: { id: string; name: string }; error?: string; issues?: any[] }>;
-  deleteItemAction: (id: string) => Promise<{ success?: boolean; error?: string }>;
-  onListChanged: (newItemId?: string) => Promise<void>; 
+  itemTypeLabel: string;
+  items: any[];
+  addItemAction: (name: string, journalId: string) => Promise<{ data?: any; error?: string }>;
+  deleteItemAction: (id: string, journalId: string) => Promise<{ success?: boolean; error?: string }>;
+  onListChanged: (newItemId?: string) => Promise<void>;
+  journalId: string;
 }
 
 export function ManageItemsModal({
   isOpen,
   onClose,
   itemTypeLabel,
-  items = [], 
+  items,
   addItemAction,
   deleteItemAction,
   onListChanged,
+  journalId,
 }: ManageItemsModalProps) {
   const [isSubmittingNew, setIsSubmittingNew] = useState(false);
   const [itemToDelete, setItemToDelete] = useState<string | null>(null); 
@@ -46,7 +48,7 @@ export function ManageItemsModal({
   const handleAddNewItem: SubmitHandler<AddListItemInput> = async (data) => {
     setIsSubmittingNew(true);
     try {
-      const result = await addItemAction(data.name);
+      const result = await addItemAction(data.name, journalId);
       if (result.data) {
         toast.success(`${itemTypeLabel} "${result.data.name}" ajouté avec succès !`);
         reset();
@@ -63,10 +65,9 @@ export function ManageItemsModal({
   };
 
   const handleDeleteItem = async (itemId: string, itemName: string) => {
-
     setItemToDelete(itemId);
     try {
-      const result = await deleteItemAction(itemId);
+      const result = await deleteItemAction(itemId, journalId);
       if (result.success) {
         toast.success(`${itemTypeLabel} "${itemName}" supprimé avec succès !`);
         await onListChanged(); 

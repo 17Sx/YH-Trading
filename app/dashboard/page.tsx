@@ -8,6 +8,7 @@ import { format, parseISO } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
+import { JournalSelector } from "@/components/journal/journal-selector";
 
 interface GlobalStats {
   totalTrades: number;
@@ -109,13 +110,65 @@ function calculateMonthlyPnl(trades: Trade[]): MonthlyPnlData[] {
     });
 }
 
-export default async function DashboardPage() {
+export default async function DashboardPage({
+  searchParams,
+}: {
+  searchParams: { journalId?: string };
+}) {
+  const primaryAccentRGB: [number, number, number] = [0.494, 0.357, 0.937];
   const supabase = createSupabaseServerClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect('/auth');
 
-  const { trades, error: tradesError } = await getTrades();
-  const primaryAccentRGB: [number, number, number] = [0.494, 0.357, 0.937];
+  // Récupérer tous les journaux de l'utilisateur
+  const { data: journals, error: journalsError } = await supabase
+    .from('journals')
+    .select('id, name')
+    .eq('user_id', user.id)
+    .order('created_at', { ascending: true });
+
+  if (journalsError) {
+    return (
+      <div className="relative min-h-screen selection:bg-purple-500 selection:text-white">
+        <div className="absolute inset-0 z-0">
+          <Dither waveColor={primaryAccentRGB} waveAmplitude={0.05} waveFrequency={0.5} pixelSize={1} colorNum={5} waveSpeed={0.1} enableMouseInteraction={true} mouseRadius={0.3} />
+        </div>
+        <div className="relative z-10 min-h-screen flex flex-col items-center justify-center p-4 text-gray-100">
+          <div className="p-4 text-center text-red-400 bg-red-900/30 rounded-lg border border-red-700/50">Erreur lors de la récupération des journaux: {journalsError.message}</div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!journals || journals.length === 0) {
+    return (
+      <div className="relative min-h-screen selection:bg-purple-500 selection:text-white">
+        <div className="absolute inset-0 z-0">
+          <Dither waveColor={primaryAccentRGB} waveAmplitude={0.05} waveFrequency={0.5} pixelSize={1} colorNum={5} waveSpeed={0.1} enableMouseInteraction={true} mouseRadius={0.3} />
+        </div>
+        <div className="relative z-10 min-h-screen flex flex-col items-center justify-center p-4 text-gray-100">
+          <div className="p-4 text-center text-gray-400 bg-gray-800/70 rounded-lg border border-gray-700/50">Aucun journal trouvé. Veuillez créer un journal pour commencer.</div>
+        </div>
+      </div>
+    );
+  }
+
+  let trades: Trade[] = [];
+  let tradesError: string | undefined;
+
+  if (searchParams.journalId) {
+    // Récupérer les trades d'un journal spécifique
+    const result = await getTrades(searchParams.journalId);
+    trades = result.trades;
+    tradesError = result.error;
+  } else {
+    // Récupérer les trades de tous les journaux
+    const allTradesPromises = journals.map(journal => getTrades(journal.id));
+    const allTradesResults = await Promise.all(allTradesPromises);
+    
+    trades = allTradesResults.flatMap(result => result.trades);
+    tradesError = allTradesResults.find(result => result.error)?.error;
+  }
 
   if (tradesError) {
     return (
@@ -129,23 +182,10 @@ export default async function DashboardPage() {
       </div>
     );
   }
-  
-  if (!trades) {
-     return (
-      <div className="relative min-h-screen selection:bg-purple-500 selection:text-white">
-        <div className="absolute inset-0 z-0">
-          <Dither waveColor={primaryAccentRGB} waveAmplitude={0.05} waveFrequency={0.5} pixelSize={1} colorNum={5} waveSpeed={0.1} enableMouseInteraction={true} mouseRadius={0.3} />
-        </div>
-        <div className="relative z-10 min-h-screen flex flex-col items-center justify-center p-4 text-gray-100">
-          <div className="p-4 text-center text-gray-400 bg-gray-800/70 rounded-lg border border-gray-700/50">Aucune donnée de trade disponible.</div>
-        </div>
-      </div>
-    );
-  }
 
-  const stats = calculateGlobalStats(trades || []);
-  const monthlyPnl = calculateMonthlyPnl(trades || []);
-  const pnlSuffix = '%'; 
+  const stats = calculateGlobalStats(trades);
+  const monthlyPnl = calculateMonthlyPnl(trades);
+  const pnlSuffix = '%';
 
   return (
     <div className="relative min-h-screen selection:bg-purple-500 selection:text-white">
@@ -164,12 +204,29 @@ export default async function DashboardPage() {
 
       <div className="relative z-10 flex flex-col items-center justify-start p-4 pt-10 md:pt-12 text-gray-100 pointer-events-none min-h-screen">
         <div className="w-full max-w-7xl space-y-6 bg-transparent p-0 md:p-4 pointer-events-auto flex flex-col flex-grow">
-          <header className="mb-6 text-center md:text-left">
+          <header className="mb-4 flex flex-col md:flex-row items-center justify-between text-left">
+
+            <div className="flex flex-col">
+
             <h1 className="text-3xl md:text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-500">
               Dashboard Global
             </h1>
             <p className="mt-1 text-base md:text-lg text-gray-300">Vue d'ensemble de vos performances de trading.</p>
+
+            </div>
+
+            <div className="flex items-center justify-end">
+
+            <JournalSelector 
+              journals={journals} 
+              selectedJournalId={searchParams.journalId} 
+              showAllOption={true}
+            />
+
+          </div>
+
           </header>
+
 
           <section className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 md:gap-4">
             <StatCard title="Trades Totaux" value={stats.totalTrades.toString()} icon={<BuildingStorefrontIcon className="h-6 w-6 md:h-7 md:w-7 text-purple-400" />} />
