@@ -243,12 +243,11 @@ export function JournalClient() {
     }
     const exportData = trades.map(trade => ({
       Date: trade.trade_date,
-      Asset: trade.asset_name,
+      Actif: trade.asset_name,
       Session: trade.session_name,
-      'Durée': typeof trade.duration_minutes === 'number' ? (trade.duration_minutes % 60 === 0 ? `${trade.duration_minutes / 60} h` : `${trade.duration_minutes} min`) : '',
-      Setup: trade.setup_name,
       Risk: trade.risk_input,
-      PnL: trade.profit_loss_amount,
+      Profit: trade.profit_loss_amount,
+      Setup: trade.setup_name,
       Notes: trade.notes ?? "",
       Lien: trade.tradingview_link ?? ""
     }));
@@ -257,7 +256,6 @@ export function JournalClient() {
     XLSX.utils.book_append_sheet(wb, ws, "Trades");
     XLSX.writeFile(wb, filename);
   }
-
   return (
     <>
       <Toaster richColors position="bottom-right" />
