@@ -27,13 +27,10 @@
 ## 📚 Table of Contents
 
 - [Demo](#demo)
-- [Screenshots](#screenshots)
 - [Getting Started](#getting-started)
 - [Project Structure](#project-structure)
 - [Core Concepts](#core-concepts)
 - [Tech Stack](#tech-stack)
-- [Contributing](#contributing)
-- [License](#license)
 
 ---
 
