@@ -36,6 +36,13 @@ function groupTradesByDay(trades: Trade[]) {
   return map;
 }
 
+function getUTCDateKey(date: Date) {
+  const yyyy = date.getUTCFullYear();
+  const mm = (date.getUTCMonth() + 1).toString().padStart(2, '0');
+  const dd = date.getUTCDate().toString().padStart(2, '0');
+  return `${yyyy}-${mm}-${dd}`;
+}
+
 export function CalendarMonth({ year, month, trades }: CalendarMonthProps) {
   const days = getMonthDays(year, month);
   const tradesByDay = groupTradesByDay(trades);
@@ -45,14 +52,17 @@ export function CalendarMonth({ year, month, trades }: CalendarMonthProps) {
       {["Dim", "Lun", "Mar", "Mer", "Jeu", "Ven", "Sam"].map((d) => (
         <div key={d} className="text-xs text-gray-400 text-center">{d}</div>
       ))}
-      {days.map(({ date, isCurrentMonth }, idx) => (
-        <CalendarDay
-          key={idx}
-          date={date}
-          trades={tradesByDay[date.toISOString().slice(0, 10)] || []}
-          isCurrentMonth={isCurrentMonth}
-        />
-      ))}
+      {days.map(({ date, isCurrentMonth }, idx) => {
+        const dateKey = getUTCDateKey(date);
+        return (
+          <CalendarDay
+            key={idx}
+            date={date}
+            trades={tradesByDay[dateKey] || []}
+            isCurrentMonth={isCurrentMonth}
+          />
+        );
+      })}
     </div>
   );
 } 

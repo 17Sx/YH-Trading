@@ -14,6 +14,13 @@ export function CalendarDay({ date, trades, isCurrentMonth }: CalendarDayProps) 
     : pnl < 0 ? "bg-red-500/80 text-white"
     : "bg-gray-800/80 text-gray-300";
 
+  const parisDay = date.toLocaleDateString('fr-FR', { timeZone: 'Europe/Paris', day: 'numeric' });
+
+  const pnlDisplay = pnl > 0 ? "+" : pnl < 0 ? "" : "";
+  const pnlValue = pnl.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+  const dayNumber = date.getUTCDate();
+
   return (
     <div
       className={clsx(
@@ -22,12 +29,12 @@ export function CalendarDay({ date, trades, isCurrentMonth }: CalendarDayProps) 
         "focus:ring-2 focus:ring-purple-500 focus:z-10 cursor-pointer"
       )}
       tabIndex={0}
-      aria-label={`Jour ${date.getDate()}, ${trades.length} trade${trades.length > 1 ? "s" : ""}, PnL ${pnl}`}
+      aria-label={`Jour ${parisDay}, ${trades.length} trade${trades.length > 1 ? "s" : ""}, PnL ${pnlValue}`}
     >
-      <span className="text-xs font-bold">{date.getDate()}</span>
+      <span className="text-xs font-bold">{dayNumber}</span>
       {trades.length > 0 && (
         <>
-          <span className="text-sm font-semibold">{pnl > 0 ? "+" : ""}{pnl}%</span>
+          <span className="text-sm font-semibold">{pnlDisplay}{pnlValue}%</span>
           <span className="text-xs">{trades.length} trade{trades.length > 1 ? "s" : ""}</span>
         </>
       )}
