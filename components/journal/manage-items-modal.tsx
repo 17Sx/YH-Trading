@@ -11,15 +11,19 @@ import type { Asset, Session, Setup } from "@/lib/actions/journal.actions";
 type ItemType = "asset" | "session" | "setup";
 type Item = { id: string; name: string; } & (Asset | Session | Setup);
 
+interface ItemManagementType {
+  type: ItemType;
+  id?: string;
+}
 
 interface ManageItemsModalProps {
   isOpen: boolean;
   onClose: () => void;
   itemTypeLabel: string;
   items: any[];
-  addItemAction: (name: string, journalId: string) => Promise<{ data?: any; error?: string }>;
-  deleteItemAction: (id: string, journalId: string) => Promise<{ success?: boolean; error?: string }>;
-  onListChanged: (newItemId?: string) => Promise<void>;
+  addItemAction: (name: string, journalId: string) => Promise<any>;
+  deleteItemAction: (id: string, journalId: string) => Promise<any>;
+  onListChanged: (itemType: ItemManagementType, newItemId?: string) => Promise<void>;
   journalId: string;
 }
 
@@ -52,7 +56,7 @@ export function ManageItemsModal({
       if (result.data) {
         toast.success(`${itemTypeLabel} "${result.data.name}" ajouté avec succès !`);
         reset();
-        await onListChanged(result.data.id); 
+        await onListChanged({ type: itemTypeLabel.toLowerCase() as ItemType, id: result.data.id }); 
       } else {
         toast.error(result.error || `Erreur lors de l'ajout de ${itemTypeLabel.toLowerCase()}.`);
       }
@@ -70,7 +74,7 @@ export function ManageItemsModal({
       const result = await deleteItemAction(itemId, journalId);
       if (result.success) {
         toast.success(`${itemTypeLabel} "${itemName}" supprimé avec succès !`);
-        await onListChanged(); 
+        await onListChanged({ type: itemTypeLabel.toLowerCase() as ItemType }); 
       } else {
         toast.error(result.error || `Erreur lors de la suppression de ${itemTypeLabel.toLowerCase()}.`);
       }

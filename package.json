@@ -37,6 +37,7 @@
     "react-hook-form": "^7.51.5",
     "recharts": "^2.15.3",
     "sonner": "^2.0.3",
+    "swr": "^2.3.3",
     "tailwind-merge": "^2.6.0",
     "tailwindcss-animate": "^1.0.7",
     "three": "^0.167.1",

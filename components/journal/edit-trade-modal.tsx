@@ -11,12 +11,13 @@ import {
 import type { Asset, Session, Setup, Trade } from "@/lib/actions/journal.actions";
 import { X, PlusSquare, Loader2, Calendar } from "lucide-react";
 import { toast } from "sonner";
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, memo, useRef, useMemo } from "react";
 import { ManageItemsModal } from "./manage-items-modal"; 
-import { getAssets, getSessions, getSetups } from "@/lib/actions/journal.actions";
+import useSWR from 'swr';
 import DatePicker from "react-datepicker";
 import { fr } from "date-fns/locale";
 import "react-datepicker/dist/react-datepicker.css";
+import { useJournalData } from '@/lib/hooks/useJournalData';
 
 interface EditTradeModalProps {
   isOpen: boolean;
@@ -31,7 +32,11 @@ interface EditTradeModalProps {
 
 type ItemManagementType = "asset" | "session" | "setup" | null;
 
-export function EditTradeModal({
+// Fetcher pour SWR
+const fetcher = (url: string) => fetch(url).then(res => res.json());
+
+// Composant optimisé avec React.memo
+export const EditTradeModal = memo(function EditTradeModal({
   isOpen,
   onClose,
   trade,
@@ -41,10 +46,7 @@ export function EditTradeModal({
   onDataNeedsRefresh,
   journalId,
 }: EditTradeModalProps) {
-  const [localAssets, setLocalAssets] = useState<Asset[]>(initialAssets);
-  const [localSessions, setLocalSessions] = useState<Session[]>(initialSessions);
-  const [localSetups, setLocalSetups] = useState<Setup[]>(initialSetups);
-
+  // Initialisation du formulaire
   const {
     control,
     register,
@@ -67,25 +69,37 @@ export function EditTradeModal({
     },
   });
 
-  const [itemManagementTarget, setItemManagementTarget] = useState<ItemManagementType>(null);
-  const [durationUnit, setDurationUnit] = useState<'minutes' | 'heures'>('minutes');
-  
-  useEffect(() => {
-    const initializeData = async () => {
-      const { assets: newAssets } = await getAssets(journalId);
-      const { sessions: newSessions } = await getSessions(journalId);
-      const { setups: newSetups } = await getSetups(journalId);
-      
-      if (newAssets) setLocalAssets(newAssets);
-      if (newSessions) setLocalSessions(newSessions);
-      if (newSetups) setLocalSetups(newSetups);
-    };
-    
-    if (isOpen) {
-      initializeData();
-    }
-  }, [isOpen, journalId]);
+  // Utilisation du hook useJournalData avec précharge des données
+  const { 
+    assets, 
+    sessions, 
+    setups, 
+    isLoading, 
+    error, 
+    refreshAll,
+    optimisticUpdateTrades 
+  } = useJournalData(journalId, isOpen);
 
+  const [durationUnit, setDurationUnit] = useState<'minutes' | 'heures'>('minutes');
+  const [itemManagementTarget, setItemManagementTarget] = useState<ItemManagementType>(null);
+
+  // Mémorisation des options des listes déroulantes
+  const assetOptions = useMemo(() => 
+    assets.map(a => ({ value: a.id, label: a.name })), 
+    [assets]
+  );
+
+  const sessionOptions = useMemo(() => 
+    sessions.map(s => ({ value: s.id, label: s.name })), 
+    [sessions]
+  );
+
+  const setupOptions = useMemo(() => 
+    setups.map(s => ({ value: s.id, label: s.name })), 
+    [setups]
+  );
+
+  // Réinitialisation du formulaire quand le trade change
   useEffect(() => {
     if (isOpen && trade) {
       let unit: 'minutes' | 'heures' = 'minutes';
@@ -106,7 +120,12 @@ export function EditTradeModal({
         notes: trade.notes || "",
         duration_minutes: value,
       });
-    } else if (!isOpen) {
+    }
+  }, [isOpen, trade?.id, reset]);
+
+  // Réinitialisation du formulaire quand la modale se ferme
+  useEffect(() => {
+    if (!isOpen) {
       setDurationUnit('minutes');
       reset({ 
         trade_date: new Date().toISOString().split("T")[0],
@@ -115,62 +134,94 @@ export function EditTradeModal({
         duration_minutes: undefined,
       });
     }
-  }, [isOpen, trade, reset]);
+  }, [isOpen, reset]);
 
-  const handleOpenManageItemsModal = (type: ItemManagementType) => {
+  // Mémorisation des callbacks
+  const handleOpenManageItemsModal = useCallback((type: ItemManagementType) => {
     setItemManagementTarget(type);
-  };
+  }, []);
 
-  const refreshLocalAssets = useCallback(async () => {
-    const { assets: newAssets } = await getAssets(journalId);
-    if (newAssets) setLocalAssets(newAssets);
-  }, [journalId]);
-
-  const refreshLocalSessions = useCallback(async () => {
-    const { sessions: newSessions } = await getSessions(journalId);
-    if (newSessions) setLocalSessions(newSessions);
-  }, [journalId]);
-
-  const refreshLocalSetups = useCallback(async () => {
-    const { setups: newSetups } = await getSetups(journalId);
-    if (newSetups) setLocalSetups(newSetups);
-  }, [journalId]);
-  
   const handleListChangedInManageModal = useCallback(async (itemType: ItemManagementType, newItemId?: string) => {
-    let refreshedListIsEmpty = false;
-    if (itemType === "asset") {
-      await refreshLocalAssets();
-      const currentAssets = await getAssets(journalId).then(res => res.assets || []);
-      if (newItemId) setValue("asset_id", newItemId, { shouldValidate: true });
-      else if (currentAssets.length > 0 && !currentAssets.find(a => a.id === trade?.asset_id)) {
-        setValue("asset_id", currentAssets[0].id, { shouldValidate: true });
-      } else if (currentAssets.length === 0) { 
-        setValue("asset_id", "", { shouldValidate: true }); refreshedListIsEmpty = true; 
-      }
-    } else if (itemType === "session") {
-      await refreshLocalSessions();
-      const currentSessions = await getSessions(journalId).then(res => res.sessions || []);
-      if (newItemId) setValue("session_id", newItemId, { shouldValidate: true });
-      else if (currentSessions.length > 0 && !currentSessions.find(s => s.id === trade?.session_id)) {
-        setValue("session_id", currentSessions[0].id, { shouldValidate: true });
-      } else if (currentSessions.length === 0) {
-        setValue("session_id", "", { shouldValidate: true }); refreshedListIsEmpty = true;
-      }
-    } else if (itemType === "setup") {
-      await refreshLocalSetups();
-      const currentSetups = await getSetups(journalId).then(res => res.setups || []);
-      if (newItemId) setValue("setup_id", newItemId, { shouldValidate: true });
-      else if (currentSetups.length > 0 && !currentSetups.find(s => s.id === trade?.setup_id)) {
-        setValue("setup_id", currentSetups[0].id, { shouldValidate: true });
-      } else if (currentSetups.length === 0) {
-         setValue("setup_id", "", { shouldValidate: true }); refreshedListIsEmpty = true;
-      }
+    await refreshAll();
+    
+    if (itemType === "asset" && newItemId) {
+      setValue("asset_id", newItemId, { shouldValidate: true });
+    } else if (itemType === "session" && newItemId) {
+      setValue("session_id", newItemId, { shouldValidate: true });
+    } else if (itemType === "setup" && newItemId) {
+      setValue("setup_id", newItemId, { shouldValidate: true });
     }
-    await onDataNeedsRefresh(); 
-  }, [refreshLocalAssets, refreshLocalSessions, refreshLocalSetups, onDataNeedsRefresh, setValue, trade, journalId]);
+    
+    await onDataNeedsRefresh();
+  }, [refreshAll, setValue, onDataNeedsRefresh]);
 
+  const handleClose = useCallback(() => {
+    setItemManagementTarget(null);
+    onClose();
+  }, [onClose]);
 
-  const onSubmitEditTrade: SubmitHandler<AddTradeInput> = async (data) => {
+  // Mémorisation des composants de sélection
+  const AssetSelect = useMemo(() => (
+    <Controller
+      name="asset_id"
+      control={control}
+      render={({ field }) => (
+        <select 
+          {...field} 
+          id="edit-asset_id" 
+          className={`w-full p-2.5 bg-gray-700 border ${errors.asset_id ? 'border-red-500' : 'border-gray-600'} rounded-md focus:ring-purple-500 focus:border-purple-500`}
+          value={field.value ?? ''}
+        >
+          <option value="">Sélectionner...</option>
+          {assetOptions.map(option => (
+            <option key={option.value} value={option.value}>{option.label}</option>
+          ))}
+        </select>
+      )}
+    />
+  ), [control, errors.asset_id, assetOptions]);
+
+  const SessionSelect = useMemo(() => (
+    <Controller
+      name="session_id"
+      control={control}
+      render={({ field }) => (
+        <select 
+          {...field} 
+          id="edit-session_id" 
+          className={`w-full p-2.5 bg-gray-700 border ${errors.session_id ? 'border-red-500' : 'border-gray-600'} rounded-md focus:ring-purple-500 focus:border-purple-500`}
+          value={field.value ?? ''}
+        >
+          <option value="">Sélectionner...</option>
+          {sessionOptions.map(option => (
+            <option key={option.value} value={option.value}>{option.label}</option>
+          ))}
+        </select>
+      )}
+    />
+  ), [control, errors.session_id, sessionOptions]);
+
+  const SetupSelect = useMemo(() => (
+    <Controller
+      name="setup_id"
+      control={control}
+      render={({ field }) => (
+        <select 
+          {...field} 
+          id="edit-setup_id" 
+          className={`w-full p-2.5 bg-gray-700 border ${errors.setup_id ? 'border-red-500' : 'border-gray-600'} rounded-md focus:ring-purple-500 focus:border-purple-500`}
+          value={field.value ?? ''}
+        >
+          <option value="">Sélectionner...</option>
+          {setupOptions.map(option => (
+            <option key={option.value} value={option.value}>{option.label}</option>
+          ))}
+        </select>
+      )}
+    />
+  ), [control, errors.setup_id, setupOptions]);
+
+  const onSubmitEditTrade: SubmitHandler<AddTradeInput> = useCallback(async (data) => {
     if (!trade) {
       toast.error("Aucun trade sélectionné pour la modification.");
       return;
@@ -234,7 +285,8 @@ export function EditTradeModal({
       const result = await updateTrade(trade.id, changedData, journalId);
       if (result.success) {
         toast.success("Trade modifié avec succès !");
-        onClose(); 
+        await refreshAll();
+        onClose();
       } else {
         let errorMessage = result.error || "Une erreur est survenue lors de la modification.";
         if (result.issues) {
@@ -246,9 +298,11 @@ export function EditTradeModal({
       console.error(error);
       toast.error("Une erreur inattendue est survenue lors de la modification du trade.");
     }
-  };
+  }, [trade, durationUnit, journalId, onClose, refreshAll]);
 
   if (!isOpen) return null;
+  if (isLoading) return <div>Chargement...</div>;
+  if (error) return <div>Erreur lors du chargement des données</div>;
 
   let currentItems: any[] = [];
   let currentAddItemAction: any;
@@ -257,17 +311,17 @@ export function EditTradeModal({
 
   if (itemManagementTarget === "asset") {
     currentItemTypeLabel = "Actif";
-    currentItems = localAssets;
+    currentItems = assets;
     currentAddItemAction = addAsset;
     currentDeleteItemAction = deleteAsset;
   } else if (itemManagementTarget === "session") {
     currentItemTypeLabel = "Session";
-    currentItems = localSessions;
+    currentItems = sessions;
     currentAddItemAction = addSession;
     currentDeleteItemAction = deleteSession;
   } else if (itemManagementTarget === "setup") {
     currentItemTypeLabel = "Setup";
-    currentItems = localSetups;
+    currentItems = setups;
     currentAddItemAction = addSetup;
     currentDeleteItemAction = deleteSetup;
   }
@@ -277,7 +331,7 @@ export function EditTradeModal({
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4 pointer-events-auto">
         <div className="bg-gray-800 p-6 md:p-8 rounded-lg shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto relative border border-purple-500/50">
           <button
-            onClick={onClose}
+            onClick={handleClose}
             className="absolute top-4 right-4 text-gray-400 hover:text-gray-200 transition-colors"
             aria-label="Fermer la modale"
             disabled={isSubmittingForm}
@@ -345,21 +399,7 @@ export function EditTradeModal({
                       <PlusSquare size={14} className="mr-1"/> Gérer
                     </button>
                   </label>
-                  <Controller
-                    name="asset_id"
-                    control={control}
-                    render={({ field }) => (
-                      <select 
-                        {...field} 
-                        id="edit-asset_id" 
-                        className={`w-full p-2.5 bg-gray-700 border ${errors.asset_id ? 'border-red-500' : 'border-gray-600'} rounded-md focus:ring-purple-500 focus:border-purple-500`}
-                        value={field.value ?? ''}
-                      >
-                        <option value="">Sélectionner...</option>
-                        {localAssets.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
-                      </select>
-                    )}
-                  />
+                  {AssetSelect}
                   {errors.asset_id && <p className="mt-1 text-sm text-red-400">{errors.asset_id.message}</p>}
                 </div>
 
@@ -371,47 +411,19 @@ export function EditTradeModal({
                       <PlusSquare size={14} className="mr-1"/> Gérer
                     </button>
                   </label>
-                  <Controller
-                    name="session_id"
-                    control={control}
-                    render={({ field }) => (
-                        <select 
-                          {...field} 
-                          id="edit-session_id" 
-                          className={`w-full p-2.5 bg-gray-700 border ${errors.session_id ? 'border-red-500' : 'border-gray-600'} rounded-md focus:ring-purple-500 focus:border-purple-500`}
-                          value={field.value ?? ''}
-                        >
-                        <option value="">Sélectionner...</option>
-                        {localSessions.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-                        </select>
-                    )}
-                    />
+                  {SessionSelect}
                   {errors.session_id && <p className="mt-1 text-sm text-red-400">{errors.session_id.message}</p>}
                 </div>
 
                 {/* Setup */}
                 <div>
                   <label htmlFor="edit-setup_id" className="flex items-center justify-between text-sm font-medium text-gray-300 mb-1">
-                      <span>Setup</span>
-                      <button type="button" onClick={() => handleOpenManageItemsModal("setup")} className="text-xs text-purple-400 hover:text-purple-300 hover:underline flex items-center" disabled={isSubmittingForm}>
-                          <PlusSquare size={14} className="mr-1"/> Gérer
-                      </button>
+                    <span>Setup</span>
+                    <button type="button" onClick={() => handleOpenManageItemsModal("setup")} className="text-xs text-purple-400 hover:text-purple-300 hover:underline flex items-center" disabled={isSubmittingForm}>
+                      <PlusSquare size={14} className="mr-1"/> Gérer
+                    </button>
                   </label>
-                   <Controller
-                    name="setup_id"
-                    control={control}
-                    render={({ field }) => (
-                        <select 
-                          {...field} 
-                          id="edit-setup_id" 
-                          className={`w-full p-2.5 bg-gray-700 border ${errors.setup_id ? 'border-red-500' : 'border-gray-600'} rounded-md focus:ring-purple-500 focus:border-purple-500`}
-                          value={field.value ?? ''}
-                        >
-                        <option value="">Sélectionner...</option>
-                        {localSetups.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-                        </select>
-                    )}
-                    />
+                  {SetupSelect}
                   {errors.setup_id && <p className="mt-1 text-sm text-red-400">{errors.setup_id.message}</p>}
                 </div>
               </div>
@@ -497,7 +509,7 @@ export function EditTradeModal({
               <div className="flex justify-end space-x-3 pt-2">
                 <button 
                   type="button" 
-                  onClick={onClose} 
+                  onClick={handleClose} 
                   disabled={isSubmittingForm}
                   className="px-4 py-2 text-sm font-medium text-gray-300 bg-gray-600 hover:bg-gray-500 rounded-md transition-colors"
                 >
@@ -527,14 +539,10 @@ export function EditTradeModal({
           items={currentItems}
           addItemAction={currentAddItemAction}
           deleteItemAction={currentDeleteItemAction}
-          onListChanged={async (newItemId?: string) => {
-            if (itemManagementTarget) { 
-                await handleListChangedInManageModal(itemManagementTarget, newItemId);
-            }
-          }}
+          onListChanged={handleListChangedInManageModal}
           journalId={journalId}
         />
       )}
     </>
   );
-} 
+}); 

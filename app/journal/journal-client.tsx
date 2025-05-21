@@ -186,13 +186,10 @@ export function JournalClient({ journal }: JournalClientProps) {
       const isYearMatch = tradeDate.getFullYear() === selectedYear;
       const isMonthYearMatch = isYearMatch && tradeDate.getMonth() === selectedMonth;
       
-      // Si on est en mode "tous", on ne filtre pas par date
       if (viewMode === 'all') {
         if (!searchTerm.trim()) return true;
       } else {
-        // Si on est en mode année, on ne vérifie que l'année
         if (viewMode === 'year' && !isYearMatch) return false;
-        // Si on est en mode mois, on vérifie l'année et le mois
         if (viewMode === 'month' && !isMonthYearMatch) return false;
       }
 

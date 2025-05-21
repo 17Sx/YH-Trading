@@ -120,7 +120,6 @@ export default async function DashboardPage({
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect('/auth');
 
-  // Récupérer tous les journaux de l'utilisateur
   const { data: journals, error: journalsError } = await supabase
     .from('journals')
     .select('id, name')
@@ -157,12 +156,10 @@ export default async function DashboardPage({
   let tradesError: string | undefined;
 
   if (searchParams.journalId) {
-    // Récupérer les trades d'un journal spécifique
     const result = await getTrades(searchParams.journalId);
     trades = result.trades;
     tradesError = result.error;
   } else {
-    // Récupérer les trades de tous les journaux
     const allTradesPromises = journals.map(journal => getTrades(journal.id));
     const allTradesResults = await Promise.all(allTradesPromises);
     

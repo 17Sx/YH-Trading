@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Plus } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { CreateJournalModal } from "./create-journal-modal";
+import { JournalLink } from './journal-link';
 
 interface Journal {
   id: string;
@@ -33,19 +34,20 @@ export function JournalList({ journals }: JournalListProps) {
         </button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="space-y-2">
         {journals.map((journal) => (
-          <div
+          <JournalLink
             key={journal.id}
-            onClick={() => router.push(`/journal/${journal.id}`)}
-            className="bg-gray-800 p-6 rounded-lg border border-gray-700 hover:border-purple-500 cursor-pointer transition-colors"
+            href={`/journal/${journal.id}`}
+            journalId={journal.id}
+            className="block p-4 bg-gray-800 hover:bg-gray-700 rounded-lg transition-colors"
           >
-            <h2 className="text-xl font-semibold text-white mb-2">{journal.name}</h2>
+            <h3 className="text-lg font-medium text-gray-200">{journal.name}</h3>
             <p className="text-gray-400 mb-4">{journal.description}</p>
             <p className="text-sm text-gray-500">
               Créé le {new Date(journal.created_at).toLocaleDateString()}
             </p>
-          </div>
+          </JournalLink>
         ))}
       </div>
 
