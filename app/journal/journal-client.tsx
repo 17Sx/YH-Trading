@@ -21,7 +21,7 @@ import {
   type Journal,
 } from "@/lib/actions/journal.actions";
 import { useEffect, useState, useTransition, useMemo } from "react";
-import { PlusCircle, CalendarDays, File } from "lucide-react";
+import { PlusCircle, CalendarDays, File, BookOpen } from "lucide-react";
 import { Toaster, toast } from "sonner";
 import * as XLSX from "xlsx";
 import { Loading } from "@/components/ui/loading";
@@ -63,7 +63,8 @@ export function JournalClient({ journal }: JournalClientProps) {
   const currentMonth = new Date().getMonth(); 
   const [selectedYear, setSelectedYear] = useState<number>(currentYear);
   const [selectedMonth, setSelectedMonth] = useState<number>(currentMonth);
-  const [searchTerm, setSearchTerm] = useState<string>(""); 
+  const [viewMode, setViewMode] = useState<'month' | 'year' | 'all'>('month');
+  const [searchTerm, setSearchTerm] = useState<string>("");
 
   const loadData = async () => {
     setIsLoading(true);
@@ -182,8 +183,18 @@ export function JournalClient({ journal }: JournalClientProps) {
     if (!journalData.trades) return [];
     return journalData.trades.filter(trade => {
       const tradeDate = new Date(trade.trade_date);
-      const isMonthYearMatch = tradeDate.getFullYear() === selectedYear && tradeDate.getMonth() === selectedMonth;
-      if (!isMonthYearMatch) return false;
+      const isYearMatch = tradeDate.getFullYear() === selectedYear;
+      const isMonthYearMatch = isYearMatch && tradeDate.getMonth() === selectedMonth;
+      
+      // Si on est en mode "tous", on ne filtre pas par date
+      if (viewMode === 'all') {
+        if (!searchTerm.trim()) return true;
+      } else {
+        // Si on est en mode année, on ne vérifie que l'année
+        if (viewMode === 'year' && !isYearMatch) return false;
+        // Si on est en mode mois, on vérifie l'année et le mois
+        if (viewMode === 'month' && !isMonthYearMatch) return false;
+      }
 
       if (!searchTerm.trim()) return true; 
 
@@ -200,7 +211,7 @@ export function JournalClient({ journal }: JournalClientProps) {
         field && String(field).toLowerCase().includes(lowerSearchTerm)
       );
     });
-  }, [journalData.trades, selectedYear, selectedMonth, searchTerm]);
+  }, [journalData.trades, selectedYear, selectedMonth, searchTerm, viewMode]);
 
   const monthlyStats = useMemo(() => {
     if (filteredTrades.length === 0) {
@@ -488,23 +499,59 @@ export function JournalClient({ journal }: JournalClientProps) {
               <div className="flex flex-col sm:flex-row gap-4 sm:gap-6 items-center mb-6 flex-wrap">
                 <div className="flex items-center gap-2 text-gray-300">
                   <CalendarDays size={20} className="text-purple-400"/>
-                  <span className="font-medium">Filtrer par mois :</span>
+                  <span className="font-medium">Filtrer par période :</span>
                 </div>
                 <div className="flex gap-3">
-                  <select 
-                    value={selectedMonth}
-                    onChange={(e) => setSelectedMonth(parseInt(e.target.value))}
-                    className="bg-gray-700 border border-gray-600 text-gray-200 text-sm rounded-md focus:ring-purple-500 focus:border-purple-500 p-2.5"
+                  {viewMode !== 'all' && (
+                    <>
+                      <select 
+                        value={selectedMonth}
+                        onChange={(e) => setSelectedMonth(parseInt(e.target.value))}
+                        className="bg-gray-700 border border-gray-600 text-gray-200 text-sm rounded-md focus:ring-purple-500 focus:border-purple-500 p-2.5"
+                      >
+                        {monthOptions.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
+                      </select>
+                      <select 
+                        value={selectedYear}
+                        onChange={(e) => setSelectedYear(parseInt(e.target.value))}
+                        className="bg-gray-700 border border-gray-600 text-gray-200 text-sm rounded-md focus:ring-purple-500 focus:border-purple-500 p-2.5"
+                      >
+                        {yearOptions.map(year => <option key={year} value={year}>{year}</option>)}
+                      </select>
+                    </>
+                  )}
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setViewMode('month')}
+                    className={`px-3 py-2 rounded-md transition-colors ${
+                      viewMode === 'month'
+                        ? 'bg-purple-600 text-white'
+                        : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                    }`}
                   >
-                    {monthOptions.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
-                  </select>
-                  <select 
-                    value={selectedYear}
-                    onChange={(e) => setSelectedYear(parseInt(e.target.value))}
-                    className="bg-gray-700 border border-gray-600 text-gray-200 text-sm rounded-md focus:ring-purple-500 focus:border-purple-500 p-2.5"
+                    Vue Mensuelle
+                  </button>
+                  <button
+                    onClick={() => setViewMode('year')}
+                    className={`px-3 py-2 rounded-md transition-colors ${
+                      viewMode === 'year'
+                        ? 'bg-purple-600 text-white'
+                        : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                    }`}
                   >
-                    {yearOptions.map(year => <option key={year} value={year}>{year}</option>)}
-                  </select>
+                    Vue Annuelle
+                  </button>
+                  <button
+                    onClick={() => setViewMode('all')}
+                    className={`px-3 py-2 rounded-md transition-colors ${
+                      viewMode === 'all'
+                        ? 'bg-purple-600 text-white'
+                        : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                    }`}
+                  >
+                    Tous les Trades
+                  </button>
                 </div>
                 {/* Champ de recherche */}
                 <div className="flex-grow sm:flex-grow-0 sm:ml-auto">
@@ -564,7 +611,13 @@ export function JournalClient({ journal }: JournalClientProps) {
             
             {isLoading && filteredTrades.length === 0 && journalData.trades.length > 0 ? (
                 <div className="flex justify-center items-center h-64">
-                    <p className="text-gray-400">Chargement des trades pour {monthOptions.find(m=>m.value === selectedMonth)?.label} {selectedYear}...</p>
+                    <p className="text-gray-400">
+                      Chargement des trades {viewMode === 'month' 
+                        ? `pour ${monthOptions.find(m=>m.value === selectedMonth)?.label} ${selectedYear}`
+                        : viewMode === 'year'
+                        ? `pour l'année ${selectedYear}`
+                        : 'du journal...'}
+                    </p>
                 </div>
             ) : isLoading && journalData.trades.length === 0 ? (
                  <div className="bg-red-900/30 text-red-300 p-4 rounded-md border border-red-700/50 text-center">
