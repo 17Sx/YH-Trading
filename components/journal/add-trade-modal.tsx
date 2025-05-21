@@ -133,17 +133,17 @@ export const AddTradeModal = memo(function AddTradeModal({
         tradingview_link: data.tradingview_link,
         notes: data.notes,
         duration_minutes: duration,
-        journal_id: journalId
+        journal_id: journalId,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
       };
 
-      // Mise à jour optimiste
       optimisticUpdateTrades(optimisticTrade);
 
       const result = await addTrade({
         ...data,
-        duration_minutes: duration,
-        journal_id: journalId
-      });
+        duration_minutes: duration
+      }, journalId);
 
       if (result.success) {
         toast.success("Trade ajouté avec succès !");
