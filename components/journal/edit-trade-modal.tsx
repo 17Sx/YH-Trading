@@ -30,7 +30,11 @@ interface EditTradeModalProps {
   journalId: string;
 }
 
-type ItemManagementType = "asset" | "session" | "setup" | null;
+type ItemType = "asset" | "session" | "setup";
+interface ItemManagementType {
+  type: ItemType;
+  id?: string;
+}
 
 // Fetcher pour SWR
 const fetcher = (url: string) => fetch(url).then(res => res.json());
@@ -81,7 +85,7 @@ export const EditTradeModal = memo(function EditTradeModal({
   } = useJournalData(journalId, isOpen);
 
   const [durationUnit, setDurationUnit] = useState<'minutes' | 'heures'>('minutes');
-  const [itemManagementTarget, setItemManagementTarget] = useState<ItemManagementType>(null);
+  const [itemManagementTarget, setItemManagementTarget] = useState<ItemManagementType | null>(null);
 
   // Mémorisation des options des listes déroulantes
   const assetOptions = useMemo(() => 
@@ -137,18 +141,18 @@ export const EditTradeModal = memo(function EditTradeModal({
   }, [isOpen, reset]);
 
   // Mémorisation des callbacks
-  const handleOpenManageItemsModal = useCallback((type: ItemManagementType) => {
-    setItemManagementTarget(type);
+  const handleOpenManageItemsModal = useCallback((type: ItemType) => {
+    setItemManagementTarget({ type });
   }, []);
 
   const handleListChangedInManageModal = useCallback(async (itemType: ItemManagementType, newItemId?: string) => {
     await refreshAll();
     
-    if (itemType === "asset" && newItemId) {
+    if (itemType.type === "asset" && newItemId) {
       setValue("asset_id", newItemId, { shouldValidate: true });
-    } else if (itemType === "session" && newItemId) {
+    } else if (itemType.type === "session" && newItemId) {
       setValue("session_id", newItemId, { shouldValidate: true });
-    } else if (itemType === "setup" && newItemId) {
+    } else if (itemType.type === "setup" && newItemId) {
       setValue("setup_id", newItemId, { shouldValidate: true });
     }
     
@@ -309,17 +313,17 @@ export const EditTradeModal = memo(function EditTradeModal({
   let currentDeleteItemAction: any;
   let currentItemTypeLabel = "";
 
-  if (itemManagementTarget === "asset") {
+  if (itemManagementTarget?.type === "asset") {
     currentItemTypeLabel = "Actif";
     currentItems = assets;
     currentAddItemAction = addAsset;
     currentDeleteItemAction = deleteAsset;
-  } else if (itemManagementTarget === "session") {
+  } else if (itemManagementTarget?.type === "session") {
     currentItemTypeLabel = "Session";
     currentItems = sessions;
     currentAddItemAction = addSession;
     currentDeleteItemAction = deleteSession;
-  } else if (itemManagementTarget === "setup") {
+  } else if (itemManagementTarget?.type === "setup") {
     currentItemTypeLabel = "Setup";
     currentItems = setups;
     currentAddItemAction = addSetup;
