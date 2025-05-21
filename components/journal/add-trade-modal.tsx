@@ -9,11 +9,14 @@ import {
   deleteAsset, deleteSession, deleteSetup 
 } from "@/lib/actions/journal.actions";
 import type { Asset, Session, Setup } from "@/lib/actions/journal.actions";
-import { X, PlusSquare } from "lucide-react";
+import { X, PlusSquare, Calendar } from "lucide-react";
 import { toast } from "sonner";
 import { useEffect, useState, useCallback } from "react";
 import { ManageItemsModal } from "./manage-items-modal"; 
 import { getAssets, getSessions, getSetups } from "@/lib/actions/journal.actions";
+import DatePicker from "react-datepicker";
+import { fr } from "date-fns/locale";
+import "react-datepicker/dist/react-datepicker.css";
 
 interface AddTradeModalProps {
   isOpen: boolean;
@@ -221,8 +224,8 @@ export function AddTradeModal({
 
   const formValues = watch();
   useEffect(() => {
-
-  }, [formValues, errors]);
+    console.log('Form values updated:', formValues);
+  }, [formValues]);
 
   if (!isOpen) return null;
 
@@ -253,7 +256,46 @@ export function AddTradeModal({
               {/* Date */}
               <div>
                 <label htmlFor="trade_date" className="block text-sm font-medium text-gray-300 mb-1">Date</label>
-                <input type="date" {...register("trade_date")} id="trade_date" className={`w-full p-2.5 bg-gray-700 border ${errors.trade_date ? 'border-red-500' : 'border-gray-600'} rounded-md focus:ring-purple-500 focus:border-purple-500`} />
+                <Controller
+                  name="trade_date"
+                  control={control}
+                  render={({ field }) => (
+                    <div className="relative">
+                      <DatePicker
+                        selected={field.value ? new Date(field.value) : null}
+                        onChange={(date) => {
+                          if (date) {
+                            const formattedDate = date.toISOString().split('T')[0];
+                            field.onChange(formattedDate);
+                          }
+                        }}
+                        dateFormat="dd MMMM yyyy"
+                        locale={fr}
+                        className={`w-full p-2.5 bg-gray-700 border ${errors.trade_date ? 'border-red-500' : 'border-gray-600'} rounded-md focus:ring-purple-500 focus:border-purple-500 pl-10 text-gray-200`}
+                        placeholderText="Sélectionner une date"
+                        maxDate={new Date()}
+                        showPopperArrow={false}
+                        customInput={
+                          <input
+                            type="text"
+                            className={`w-full p-2.5 bg-gray-700 border ${errors.trade_date ? 'border-red-500' : 'border-gray-600'} rounded-md focus:ring-purple-500 focus:border-purple-500 pl-10 text-gray-200`}
+                            placeholder="Sélectionner une date"
+                            value={field.value ? new Date(field.value).toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' }) : ''}
+                            readOnly
+                          />
+                        }
+                        popperClassName="z-50"
+                        popperPlacement="bottom-start"
+                      />
+                      <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
+                      <div className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <polyline points="6 9 12 15 18 9"></polyline>
+                        </svg>
+                      </div>
+                    </div>
+                  )}
+                />
                 {errors.trade_date && <p className="mt-1 text-sm text-red-400">{errors.trade_date.message}</p>}
               </div>
 
