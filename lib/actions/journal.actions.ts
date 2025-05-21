@@ -228,7 +228,8 @@ async function addItem(
     .from(tableName)
     .insert({ 
       user_id: user.id, 
-      name: itemName.trim()
+      name: itemName.trim(),
+      journal_id: journalId
     })
     .select("id, name")
     .single();
