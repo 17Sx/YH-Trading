@@ -8,7 +8,10 @@ import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import Dither from "@/components/ui/Dither/Dither";
 import { JournalSelector } from "@/components/journal/journal-selector";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Loader2 } from "lucide-react";
+import { Loader2, Calendar } from "lucide-react";
+import DatePicker from "react-datepicker";
+import { fr } from "date-fns/locale";
+import "react-datepicker/dist/react-datepicker.css";
 
 const PERIODS = [1, 3, 6, 12];
 
@@ -16,19 +19,26 @@ export function CalendarRoot() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const today = new Date();
-  const [year, setYear] = useState(today.getFullYear());
-  const [month, setMonth] = useState(today.getMonth()); 
-  const [period, setPeriod] = useState(1); 
+  const [startDate, setStartDate] = useState(new Date(today.getFullYear(), 0, 1)); // 1er janvier de l'année en cours
+  const [endDate, setEndDate] = useState(new Date(today.getFullYear(), 11, 31)); // 31 décembre de l'année en cours
   const [trades, setTrades] = useState<Trade[]>([]);
   const [loading, setLoading] = useState(true);
   const [journals, setJournals] = useState<{ id: string; name: string; }[]>([]);
   const [selectedJournalId, setSelectedJournalId] = useState<string | undefined>(searchParams.get('journalId') || undefined);
   const [isLoadingJournals, setIsLoadingJournals] = useState(true);
 
-  const monthsToShow = Array.from({ length: period }, (_, i) => {
-    const d = new Date(year, month - (period - 1) + i, 1);
-    return { year: d.getFullYear(), month: d.getMonth() };
-  });
+  const monthsToShow = (() => {
+    const months = [];
+    let currentDate = new Date(startDate);
+    while (currentDate <= endDate) {
+      months.push({
+        year: currentDate.getFullYear(),
+        month: currentDate.getMonth()
+      });
+      currentDate.setMonth(currentDate.getMonth() + 1);
+    }
+    return months;
+  })();
 
   useEffect(() => {
     let isMounted = true;
@@ -58,10 +68,8 @@ export function CalendarRoot() {
     async function fetchTrades() {
       setLoading(true);
       const supabase = createSupabaseBrowserClient();
-      const first = new Date(monthsToShow[0].year, monthsToShow[0].month, 1);
-      const last = new Date(monthsToShow[monthsToShow.length - 1].year, monthsToShow[monthsToShow.length - 1].month + 1, 0);
-      const startStr = first.toISOString().slice(0, 10);
-      const endStr = last.toISOString().slice(0, 10);
+      const startStr = startDate.toISOString().slice(0, 10);
+      const endStr = endDate.toISOString().slice(0, 10);
 
       let query = supabase
         .from("trades")
@@ -95,7 +103,7 @@ export function CalendarRoot() {
     }
     fetchTrades();
     return () => { isMounted = false; };
-  }, [year, month, period, selectedJournalId]);
+  }, [startDate, endDate, selectedJournalId]);
 
   const handleJournalChange = (value: string) => {
     const params = new URLSearchParams(searchParams.toString());
@@ -108,120 +116,98 @@ export function CalendarRoot() {
     setSelectedJournalId(value === "all" ? undefined : value);
   };
 
-  function prevPeriod() {
-    const d = new Date(year, month - period, 1);
-    setYear(d.getFullYear());
-    setMonth(d.getMonth());
-  }
-  function nextPeriod() {
-    const d = new Date(year, month + period, 1);
-    setYear(d.getFullYear());
-    setMonth(d.getMonth());
-  }
+  const handlePeriodChange = (period: number) => {
+    const today = new Date();
+    const start = new Date(today.getFullYear(), 0, 1);
+    const end = new Date(today.getFullYear(), 11, 31); 
+    setStartDate(start);
+    setEndDate(end);
+  };
 
   return (
-    <div className="relative min-h-screen selection:bg-purple-500 selection:text-white flex justify-center items-center w-full">
-      <div className="absolute inset-0 z-0">
-        <Dither waveColor={[0.494, 0.357, 0.937]} waveAmplitude={0.05} waveFrequency={0.5} pixelSize={1} colorNum={5} waveSpeed={0.1} enableMouseInteraction={true} mouseRadius={0.3} />
-      </div>
-      <div className="relative z-10 flex flex-col items-center justify-start p-4 pt-10 md:pt-12 text-gray-100 pointer-events-auto min-h-screen w-full">
-        <header className="mb-6 text-center md:text-left w-full max-w-7xl mx-auto">
-          <h1 className="text-3xl md:text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-500">
-            Trade Calendar
-          </h1>
-          <p className="mt-1 text-base md:text-lg text-gray-300">Visualisez vos performances sur plusieurs mois.</p>
-        </header>
+    <>
+      <div className="relative min-h-screen selection:bg-purple-500 selection:text-white flex justify-center items-center w-full">
+        <div className="absolute inset-0 z-0">
+          <Dither waveColor={[0.494, 0.357, 0.937]} waveAmplitude={0.05} waveFrequency={0.5} pixelSize={1} colorNum={5} waveSpeed={0.1} enableMouseInteraction={true} mouseRadius={0.3} />
+        </div>
+        <div className="relative z-10 flex flex-col items-center justify-start p-4 pt-10 md:pt-12 text-gray-100 pointer-events-auto min-h-screen w-full">
+          <header className="mb-6 text-center md:text-left w-full max-w-7xl mx-auto">
+            <h1 className="text-3xl md:text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-500">
+              Trade Calendar
+            </h1>
+            <p className="mt-1 text-base md:text-lg text-gray-300">Visualisez vos performances sur plusieurs mois.</p>
+          </header>
 
-        <div className="w-full max-w-screen-2xl mx-auto space-y-4">
-          <div className="flex justify-end mb-4">
-            {isLoadingJournals ? (
-              <div className="w-[200px] h-10 bg-gray-800/70 border border-gray-700/50 rounded-md flex items-center justify-center">
-                <Loader2 className="w-5 h-5 text-purple-400 animate-spin" />
-              </div>
-            ) : (
-              <JournalSelector 
-                journals={journals} 
-                selectedJournalId={selectedJournalId} 
-                showAllOption={true}
-                onJournalChange={handleJournalChange}
-              />
-            )}
-          </div>
+          <div className="w-full max-w-screen-2xl mx-auto space-y-4">
+            <div className="flex justify-end mb-4">
+              {isLoadingJournals ? (
+                <div className="w-[200px] h-10 bg-gray-800/70 border border-gray-700/50 rounded-md flex items-center justify-center">
+                  <Loader2 className="w-5 h-5 text-purple-400 animate-spin" />
+                </div>
+              ) : (
+                <JournalSelector 
+                  journals={journals} 
+                  selectedJournalId={selectedJournalId} 
+                  showAllOption={true}
+                  onJournalChange={handleJournalChange}
+                />
+                
+              )}
+            </div>
 
-          <div className="flex flex-col md:flex-row justify-between items-center gap-4 bg-gray-800/70 p-4 rounded-lg shadow-xl backdrop-blur-md border border-gray-700/50">
-            <div className="flex gap-2">
-              {PERIODS.map((p) => (
-                <button
-                  key={p}
-                  onClick={() => setPeriod(p)}
-                  className={`px-3 py-1 rounded-full font-semibold border transition-all duration-200
-                    ${period === p ? "bg-purple-500 text-white border-purple-400 shadow-lg" : "bg-gray-800 text-gray-300 border-gray-700 hover:bg-purple-700/30"}`}
-                  aria-pressed={period === p}
-                >
-                  {p} mois
-                </button>
-              ))}
-            </div>
-            <div className="flex gap-2 items-center">
-              <button
-                onClick={prevPeriod}
-                aria-label="Période précédente"
-                className="px-2 py-1 rounded bg-gray-800 hover:bg-purple-700/60 focus:outline-none focus:ring-2 focus:ring-purple-500"
-              >
-                {"<"}
-              </button>
-              <span className="font-bold text-lg min-w-[120px] text-center">
-                {monthsToShow.length === 1
-                  ? `${monthNameFr(monthsToShow[0].month)} ${monthsToShow[0].year}`
-                  : `${monthNameFr(monthsToShow[0].month)} ${monthsToShow[0].year} - ${monthNameFr(monthsToShow[monthsToShow.length - 1].month)} ${monthsToShow[monthsToShow.length - 1].year}`}
-              </span>
-              <button
-                onClick={nextPeriod}
-                aria-label="Période suivante"
-                className="px-2 py-1 rounded bg-gray-800 hover:bg-purple-700/60 focus:outline-none focus:ring-2 focus:ring-purple-500"
-              >
-                {">"}
-              </button>
-            </div>
-          </div>
-
-          {loading ? (
-            <div className="w-full max-w-7xl h-96 flex items-center justify-center">
-              <div className="flex flex-col items-center gap-4">
-                <Loader2 className="w-8 h-8 text-purple-400 animate-spin" />
-                <span className="text-gray-400">Chargement des trades...</span>
-              </div>
-            </div>
-          ) : (
-            period === 1 ? (
-              <div className="flex justify-center w-full">
-                <div className="bg-gray-800/70 p-3 md:p-4 rounded-lg shadow-xl backdrop-blur-md border border-gray-700/50 flex flex-col min-w-[260px] max-w-md w-full">
-                  <h2 className="text-lg font-semibold mb-2 text-purple-400 text-center">
-                    {monthNameFr(monthsToShow[0].month)} {monthsToShow[0].year}
-                  </h2>
-                  <CalendarMonth
-                    year={monthsToShow[0].year}
-                    month={monthsToShow[0].month}
-                    trades={trades.filter(t => {
-                      const d = new Date(t.trade_date);
-                      return d.getFullYear() === monthsToShow[0].year && d.getMonth() === monthsToShow[0].month;
-                    })}
+            <div className="flex flex-col md:flex-row justify-between items-center gap-4 bg-gray-800/70 p-4 rounded-lg shadow-xl backdrop-blur-md border border-gray-700/50">
+              <div className="flex gap-4 items-center">
+                <div className="flex items-center gap-2 relative z-[9999]">
+                  <Calendar className="w-5 h-5 text-purple-400" />
+                  <DatePicker
+                    selected={startDate}
+                    onChange={(date) => date && setStartDate(date)}
+                    selectsStart
+                    startDate={startDate}
+                    endDate={endDate}
+                    maxDate={endDate}
+                    dateFormat="dd/MM/yyyy"
+                    locale={fr}
+                    showMonthYearPicker
+                    className="bg-gray-700 border border-gray-600 text-gray-200 px-3 py-1 rounded-md focus:ring-purple-500 focus:border-purple-500"
+                    popperClassName="z-[9999]"
+                    popperPlacement="top-start"
                   />
+                </div>
+                <span className="text-gray-400">à</span>
+                <div className="flex items-center gap-2 relative z-[9999]">
+                  <Calendar className="w-5 h-5 text-purple-400" />
+                  <DatePicker
+                    selected={endDate}
+                    onChange={(date) => date && setEndDate(date)}
+                    selectsEnd
+                    startDate={startDate}
+                    endDate={endDate}
+                    minDate={startDate}
+                    dateFormat="dd/MM/yyyy"
+                    locale={fr}
+                    showMonthYearPicker
+                    className="bg-gray-700 border border-gray-600 text-gray-200 px-3 py-1 rounded-md focus:ring-purple-500 focus:border-purple-500"
+                    popperClassName="z-[9999]"
+                    popperPlacement="top-start"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {loading ? (
+              <div className="w-full max-w-7xl h-96 flex items-center justify-center">
+                <div className="flex flex-col items-center gap-4">
+                  <Loader2 className="w-8 h-8 text-purple-400 animate-spin" />
+                  <span className="text-gray-400">Chargement des trades...</span>
                 </div>
               </div>
             ) : (
               <div className="w-full overflow-x-auto pb-4">
                 <div
-                  className={`grid gap-8 w-full min-w-[320px]`}
+                  className="grid gap-8 w-full min-w-[320px]"
                   style={{
-                    gridTemplateColumns:
-                      period === 3
-                        ? "repeat(3, minmax(0, 1fr))"
-                        : period === 6
-                        ? "repeat(3, minmax(0, 1fr))"
-                        : period === 12
-                        ? "repeat(3, minmax(0, 1fr))"
-                        : `repeat(${monthsToShow.length}, minmax(0, 1fr))`,
+                    gridTemplateColumns: `repeat(${Math.min(3, monthsToShow.length)}, minmax(0, 1fr))`,
                   }}
                 >
                   {monthsToShow.map(({ year, month }) => (
@@ -241,15 +227,15 @@ export function CalendarRoot() {
                   ))}
                 </div>
               </div>
-            )
-          )}
-        </div>
+            )}
+          </div>
 
-        <footer className="mt-auto pt-6 pb-2 text-xs text-gray-500 text-center relative z-10 pointer-events-auto w-full">
-          YH Trading Journal &copy; {new Date().getFullYear()}
-        </footer>
+          <footer className="mt-auto pt-6 pb-2 text-xs text-gray-500 text-center relative z-10 pointer-events-auto w-full">
+            YH Trading Journal &copy; {new Date().getFullYear()}
+          </footer>
+        </div>
       </div>
-    </div>
+    </>
   );
 }
 

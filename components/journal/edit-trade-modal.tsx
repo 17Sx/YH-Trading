@@ -88,20 +88,20 @@ export const EditTradeModal = memo(function EditTradeModal({
   const [itemManagementTarget, setItemManagementTarget] = useState<ItemManagementType | null>(null);
 
   // Mémorisation des options des listes déroulantes
-  const assetOptions = useMemo(() => 
-    assets.map(a => ({ value: a.id, label: a.name })), 
-    [assets]
-  );
+  const assetOptions = useMemo(() => {
+    if (!Array.isArray(assets)) return [];
+    return assets.map(a => ({ value: a.id, label: a.name }));
+  }, [assets]);
 
-  const sessionOptions = useMemo(() => 
-    sessions.map(s => ({ value: s.id, label: s.name })), 
-    [sessions]
-  );
+  const sessionOptions = useMemo(() => {
+    if (!Array.isArray(sessions)) return [];
+    return sessions.map(s => ({ value: s.id, label: s.name }));
+  }, [sessions]);
 
-  const setupOptions = useMemo(() => 
-    setups.map(s => ({ value: s.id, label: s.name })), 
-    [setups]
-  );
+  const setupOptions = useMemo(() => {
+    if (!Array.isArray(setups)) return [];
+    return setups.map(s => ({ value: s.id, label: s.name }));
+  }, [setups]);
 
   // Réinitialisation du formulaire quand le trade change
   useEffect(() => {
