@@ -55,11 +55,9 @@ export const AddTradeModal = memo(function AddTradeModal({
       profit_loss_amount: 0,
       tradingview_link: "",
       notes: "",
-      duration_minutes: undefined,
     },
   });
 
-  const [durationUnit, setDurationUnit] = useState<'minutes' | 'heures'>('minutes');
   const [itemManagementTarget, setItemManagementTarget] = useState<ItemManagementType | null>(null);
 
   const { 
@@ -72,7 +70,6 @@ export const AddTradeModal = memo(function AddTradeModal({
     optimisticUpdateTrades
   } = useJournalData(journalId, true);
 
-
   useEffect(() => {
     if (isOpen) {
       refreshAll().then(() => {
@@ -84,7 +81,6 @@ export const AddTradeModal = memo(function AddTradeModal({
 
   useEffect(() => {
     if (!isOpen) {
-      setDurationUnit('minutes');
       reset({
         trade_date: new Date().toISOString().split("T")[0],
         asset_id: "",
@@ -94,7 +90,6 @@ export const AddTradeModal = memo(function AddTradeModal({
         profit_loss_amount: 0,
         tradingview_link: "",
         notes: "",
-        duration_minutes: undefined,
       });
     }
   }, [isOpen, reset]);
@@ -123,11 +118,6 @@ export const AddTradeModal = memo(function AddTradeModal({
   }, [onClose]);
 
   const onSubmitTrade: SubmitHandler<AddTradeInput> = useCallback(async (data) => {
-    let duration = data.duration_minutes;
-    if (duration && durationUnit === 'heures') {
-      duration = duration * 60;
-    }
-
     try {
       const optimisticTrade = {
         id: `temp-${Date.now()}`,
@@ -139,7 +129,6 @@ export const AddTradeModal = memo(function AddTradeModal({
         profit_loss_amount: data.profit_loss_amount,
         tradingview_link: data.tradingview_link,
         notes: data.notes,
-        duration_minutes: duration,
         journal_id: journalId,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
@@ -147,10 +136,7 @@ export const AddTradeModal = memo(function AddTradeModal({
 
       optimisticUpdateTrades(optimisticTrade);
 
-      const result = await addTrade({
-        ...data,
-        duration_minutes: duration
-      }, journalId);
+      const result = await addTrade(data, journalId);
 
       if (result.success) {
         toast.success("Trade ajouté avec succès !");
@@ -169,7 +155,7 @@ export const AddTradeModal = memo(function AddTradeModal({
       toast.error("Une erreur inattendue est survenue lors de l'ajout du trade.");
       await refreshAll();
     }
-  }, [durationUnit, journalId, onClose, refreshAll, optimisticUpdateTrades]);
+  }, [journalId, onClose, refreshAll, optimisticUpdateTrades]);
 
   if (!isOpen) return null;
   if (isLoading) return <div>Chargement...</div>;
@@ -378,33 +364,6 @@ export const AddTradeModal = memo(function AddTradeModal({
               <label htmlFor="notes" className="block text-sm font-medium text-gray-300 mb-1">Notes (Optionnel)</label>
               <textarea {...register("notes")} id="notes" rows={3} placeholder="Contexte, émotions, leçons apprises..." className={`w-full p-2.5 bg-gray-700 border ${errors.notes ? 'border-red-500' : 'border-gray-600'} rounded-md focus:ring-purple-500 focus:border-purple-500`}></textarea>
               {errors.notes && <p className="mt-1 text-sm text-red-400">{errors.notes.message}</p>}
-            </div>
-
-            {/* Durée */}
-            <div>
-              <label htmlFor="duration_minutes" className="block text-sm font-medium text-gray-300 mb-1">Durée</label>
-              <div className="flex gap-2 items-center">
-                <input
-                  type="number"
-                  min="1"
-                  step="1"
-                  {...register("duration_minutes")}
-                  id="duration_minutes"
-                  className={`w-full p-2.5 bg-gray-700 border ${errors.duration_minutes ? 'border-red-500' : 'border-gray-600'} rounded-md focus:ring-purple-500 focus:border-purple-500`}
-                  placeholder="Ex: 45"
-                />
-                <select
-                  value={durationUnit}
-                  onChange={e => setDurationUnit(e.target.value as 'minutes' | 'heures')}
-                  className="bg-gray-700 border border-gray-600 text-gray-200 text-sm rounded-md focus:ring-purple-500 focus:border-purple-500 p-2.5"
-                >
-                  <option value="minutes">minutes</option>
-                  <option value="heures">heures</option>
-                </select>
-              </div>
-              {errors.duration_minutes && (
-                <p className="text-red-400 text-xs mt-1">{errors.duration_minutes.message as string}</p>
-              )}
             </div>
 
             <div className="flex justify-end space-x-3 pt-2">

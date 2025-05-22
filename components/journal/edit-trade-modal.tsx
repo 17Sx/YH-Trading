@@ -132,7 +132,7 @@ export const EditTradeModal = memo(function EditTradeModal({
       });
     }
   }, [isOpen, reset]);
-  
+
   const handleOpenManageItemsModal = useCallback((type: ItemType) => {
     setItemManagementTarget({ type });
   }, []);
@@ -481,32 +481,6 @@ export const EditTradeModal = memo(function EditTradeModal({
                 {errors.notes && <p className="mt-1 text-sm text-red-400">{errors.notes.message}</p>}
               </div>
 
-              {/* Durée */}
-              <div>
-                <label htmlFor="duration_minutes" className="block text-sm font-medium text-gray-300 mb-1">Durée</label>
-                <div className="flex gap-2 items-center">
-                  <input
-                    type="number"
-                    min="1"
-                    step="1"
-                    {...register("duration_minutes")}
-                    id="duration_minutes"
-                    className={`w-full p-2.5 bg-gray-700 border ${errors.duration_minutes ? 'border-red-500' : 'border-gray-600'} rounded-md focus:ring-purple-500 focus:border-purple-500`}
-                    placeholder="Ex: 45"
-                  />
-                  <select
-                    value={durationUnit}
-                    onChange={e => setDurationUnit(e.target.value as 'minutes' | 'heures')}
-                    className="bg-gray-700 border border-gray-600 text-gray-200 text-sm rounded-md focus:ring-purple-500 focus:border-purple-500 p-2.5"
-                  >
-                    <option value="minutes">minutes</option>
-                    <option value="heures">heures</option>
-                  </select>
-                </div>
-                {errors.duration_minutes && (
-                  <p className="text-red-400 text-xs mt-1">{errors.duration_minutes.message as string}</p>
-                )}
-              </div>
 
               <div className="flex justify-end space-x-3 pt-2">
                 <button 
