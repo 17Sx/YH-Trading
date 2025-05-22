@@ -161,9 +161,11 @@ export function useJournalData(journalId: string, isEnabled: boolean = true): Jo
   const optimisticUpdateTrades = (newTrade: Trade) => {
     mutateTrades(
       (currentData: any) => {
-        if (!currentData) return { trades: [newTrade] };
+        if (!currentData) return { trades: { trades: [newTrade] } };
         return {
-          trades: [newTrade, ...currentData.trades]
+          trades: {
+            trades: [newTrade, ...(currentData.trades?.trades || [])]
+          }
         };
       },
       { revalidate: false }
