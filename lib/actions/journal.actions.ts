@@ -447,7 +447,10 @@ export async function getJournals(): Promise<{ journals: (Journal & {
         const tradesList = (trades || []) as Trade[];
         const totalTrades = tradesList.length;
         const winningTrades = tradesList.filter((trade: Trade) => trade.profit_loss_amount > 0).length;
-        const winRate = totalTrades > 0 ? Math.round((winningTrades / totalTrades) * 100) : 0;
+        const losingTrades = tradesList.filter((trade: Trade) => trade.profit_loss_amount < 0).length;
+        const breakevenTrades = tradesList.filter((trade: Trade) => trade.profit_loss_amount === 0).length;
+        const nonBreakevenTradesCount = winningTrades + losingTrades;
+        const winRate = nonBreakevenTradesCount > 0 ? Math.round((winningTrades / nonBreakevenTradesCount) * 100) : 0;
         const lastTradeDate = tradesList.length > 0 
           ? new Date(tradesList.reduce((latest: Trade, trade: Trade) => 
               new Date(trade.trade_date) > new Date(latest.trade_date) ? trade : latest
