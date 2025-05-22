@@ -49,6 +49,8 @@ export function ManageItemsModal({
     resolver: zodResolver(AddListItemSchema),
   });
 
+  const safeItems = Array.isArray(items) ? items : [];
+
   const handleAddNewItem: SubmitHandler<AddListItemInput> = async (data) => {
     setIsSubmittingNew(true);
     try {
@@ -109,7 +111,7 @@ export function ManageItemsModal({
           <label htmlFor="newItemName" className="block text-sm font-medium text-gray-300 mb-1">
             Ajouter un nouveau {itemTypeLabel.toLowerCase()}
           </label>
-          <div className="flex items-center gap-2">
+          <div className="flex gap-2">
             <input
               type="text"
               {...register("name")}
@@ -130,12 +132,12 @@ export function ManageItemsModal({
         </form>
 
         {/* Liste des items existants */}
-        <div className="flex-grow overflow-y-auto pr-2 space-y-2">
-          {items.length === 0 ? (
+        <div className="flex-1 overflow-y-auto">
+          {safeItems.length === 0 ? (
             <p className="text-gray-400 text-center py-4">Aucun {itemTypeLabel.toLowerCase()} existant.</p>
           ) : (
-            items.map((item) => (
-              <div key={item.id} className="flex items-center justify-between bg-gray-700/50 p-3 rounded-md hover:bg-gray-700 transition-colors">
+            safeItems.map((item) => (
+              <div key={item.id} className="flex items-center justify-between bg-gray-700/50 p-3 rounded-md hover:bg-gray-700 transition-colors mb-2">
                 <span className="text-gray-200">{item.name}</span>
                 <button
                   onClick={() => handleDeleteItem(item.id, item.name)}
@@ -151,13 +153,13 @@ export function ManageItemsModal({
         </div>
         
         <div className="mt-6 pt-4 border-t border-gray-700 flex justify-end">
-            <button
-              type="button"
-              onClick={onClose}
-              className="py-2 px-5 text-sm font-medium text-gray-300 hover:bg-gray-700 rounded-md transition-colors"
-            >
-              Fermer
-            </button>
+          <button
+            type="button"
+            onClick={onClose}
+            className="py-2 px-5 text-sm font-medium text-gray-300 hover:bg-gray-700 rounded-md transition-colors"
+          >
+            Fermer
+          </button>
         </div>
       </div>
     </div>

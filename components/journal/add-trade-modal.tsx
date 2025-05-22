@@ -62,7 +62,6 @@ export const AddTradeModal = memo(function AddTradeModal({
   const [durationUnit, setDurationUnit] = useState<'minutes' | 'heures'>('minutes');
   const [itemManagementTarget, setItemManagementTarget] = useState<ItemManagementType | null>(null);
 
-  // Utilisation du hook useJournalData avec les types corrects
   const { 
     assets = [], 
     sessions = [], 
@@ -71,9 +70,18 @@ export const AddTradeModal = memo(function AddTradeModal({
     error,
     refreshAll,
     optimisticUpdateTrades
-  } = useJournalData(journalId, isOpen);
+  } = useJournalData(journalId, true);
 
-  // Réinitialisation du formulaire quand la modale se ferme
+
+  useEffect(() => {
+    if (isOpen) {
+      refreshAll().then(() => {
+      }).catch(err => {
+        console.error('Erreur lors du rafraîchissement:', err);
+      });
+    }
+  }, [isOpen, refreshAll]);
+
   useEffect(() => {
     if (!isOpen) {
       setDurationUnit('minutes');
@@ -121,7 +129,6 @@ export const AddTradeModal = memo(function AddTradeModal({
     }
 
     try {
-      // Créer un trade temporaire pour l'update optimiste
       const optimisticTrade = {
         id: `temp-${Date.now()}`,
         trade_date: data.trade_date,
@@ -155,13 +162,11 @@ export const AddTradeModal = memo(function AddTradeModal({
           errorMessage = result.issues.map((issue) => `${issue.path.join(".")}: ${issue.message}`).join(" ; ");
         }
         toast.error(errorMessage);
-        // Rafraîchir les données en cas d'erreur
         await refreshAll();
       }
     } catch (error) {
       console.error(error);
       toast.error("Une erreur inattendue est survenue lors de l'ajout du trade.");
-      // Rafraîchir les données en cas d'erreur
       await refreshAll();
     }
   }, [durationUnit, journalId, onClose, refreshAll, optimisticUpdateTrades]);
@@ -263,12 +268,23 @@ export const AddTradeModal = memo(function AddTradeModal({
                     <PlusSquare size={14} className="mr-1"/> Gérer
                   </button>
                 </label>
-                <select {...register("asset_id")} id="asset_id" className={`w-full p-2.5 bg-gray-700 border ${errors.asset_id ? 'border-red-500' : 'border-gray-600'} rounded-md focus:ring-purple-500 focus:border-purple-500`}>
-                  <option value="">Sélectionner...</option>
-                  {Array.isArray(assets) && assets.map(a => (
-                    <option key={a.id} value={a.id}>{a.name}</option>
-                  ))}
-                </select>
+                <Controller
+                  name="asset_id"
+                  control={control}
+                  render={({ field }) => (
+                    <select 
+                      {...field} 
+                      id="asset_id" 
+                      className={`w-full p-2.5 bg-gray-700 border ${errors.asset_id ? 'border-red-500' : 'border-gray-600'} rounded-md focus:ring-purple-500 focus:border-purple-500`}
+                      value={field.value || ''}
+                    >
+                      <option value="">Sélectionner...</option>
+                      {Array.isArray(assets) && assets.map(asset => (
+                        <option key={asset.id} value={asset.id}>{asset.name}</option>
+                      ))}
+                    </select>
+                  )}
+                />
                 {errors.asset_id && <p className="mt-1 text-sm text-red-400">{errors.asset_id.message}</p>}
               </div>
 
@@ -280,12 +296,23 @@ export const AddTradeModal = memo(function AddTradeModal({
                     <PlusSquare size={14} className="mr-1"/> Gérer
                   </button>
                 </label>
-                <select {...register("session_id")} id="session_id" className={`w-full p-2.5 bg-gray-700 border ${errors.session_id ? 'border-red-500' : 'border-gray-600'} rounded-md focus:ring-purple-500 focus:border-purple-500`}>
-                  <option value="">Sélectionner...</option>
-                  {Array.isArray(sessions) && sessions.map(s => (
-                    <option key={s.id} value={s.id}>{s.name}</option>
-                  ))}
-                </select>
+                <Controller
+                  name="session_id"
+                  control={control}
+                  render={({ field }) => (
+                    <select 
+                      {...field} 
+                      id="session_id" 
+                      className={`w-full p-2.5 bg-gray-700 border ${errors.session_id ? 'border-red-500' : 'border-gray-600'} rounded-md focus:ring-purple-500 focus:border-purple-500`}
+                      value={field.value || ''}
+                    >
+                      <option value="">Sélectionner...</option>
+                      {Array.isArray(sessions) && sessions.map(session => (
+                        <option key={session.id} value={session.id}>{session.name}</option>
+                      ))}
+                    </select>
+                  )}
+                />
                 {errors.session_id && <p className="mt-1 text-sm text-red-400">{errors.session_id.message}</p>}
               </div>
 
@@ -297,12 +324,23 @@ export const AddTradeModal = memo(function AddTradeModal({
                     <PlusSquare size={14} className="mr-1"/> Gérer
                   </button>
                 </label>
-                <select {...register("setup_id")} id="setup_id" className={`w-full p-2.5 bg-gray-700 border ${errors.setup_id ? 'border-red-500' : 'border-gray-600'} rounded-md focus:ring-purple-500 focus:border-purple-500`}>
-                  <option value="">Sélectionner...</option>
-                  {Array.isArray(setups) && setups.map(s => (
-                    <option key={s.id} value={s.id}>{s.name}</option>
-                  ))}
-                </select>
+                <Controller
+                  name="setup_id"
+                  control={control}
+                  render={({ field }) => (
+                    <select 
+                      {...field} 
+                      id="setup_id" 
+                      className={`w-full p-2.5 bg-gray-700 border ${errors.setup_id ? 'border-red-500' : 'border-gray-600'} rounded-md focus:ring-purple-500 focus:border-purple-500`}
+                      value={field.value || ''}
+                    >
+                      <option value="">Sélectionner...</option>
+                      {Array.isArray(setups) && setups.map(setup => (
+                        <option key={setup.id} value={setup.id}>{setup.name}</option>
+                      ))}
+                    </select>
+                  )}
+                />
                 {errors.setup_id && <p className="mt-1 text-sm text-red-400">{errors.setup_id.message}</p>}
               </div>
             </div>

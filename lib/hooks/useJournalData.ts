@@ -22,21 +22,21 @@ interface JournalError extends Error {
 const fetcher = async (url: string) => {
   const res = await fetch(url);
   if (!res.ok) {
+    console.error('Error fetching data:', { url, status: res.status });
     const error = new Error('Une erreur est survenue lors du chargement des données') as JournalError;
     error.status = res.status;
     error.info = await res.json();
     throw error;
   }
-  return res.json();
+  const data = await res.json();
+  return data;
 };
 
-// Configuration SWR optimisée
 const swrOptions = {
   revalidateOnFocus: false,
   revalidateOnReconnect: false,
   dedupingInterval: 5000,
   shouldRetryOnError: (error: JournalError) => {
-    // Ne pas réessayer sur les erreurs 404
     return error.status !== 404;
   },
   onError: (error: JournalError) => {
@@ -44,11 +44,9 @@ const swrOptions = {
   }
 };
 
-// Cache global pour la précharge
 const preloadCache = new Map<string, Promise<any>>();
 const preloadTimeouts = new Map<string, NodeJS.Timeout>();
 
-// Fonction de précharge des données avec debounce
 export const preloadJournalData = async (journalId: string) => {
   const endpoints = [
     `/api/journals/${journalId}/assets`,
@@ -57,7 +55,6 @@ export const preloadJournalData = async (journalId: string) => {
     `/api/journals/${journalId}/trades`
   ];
 
-  // Annuler les préchargements en cours pour ce journal
   endpoints.forEach(endpoint => {
     const timeout = preloadTimeouts.get(endpoint);
     if (timeout) {
@@ -66,13 +63,11 @@ export const preloadJournalData = async (journalId: string) => {
     }
   });
 
-  // Débounce de 100ms pour éviter les requêtes multiples
   const debouncedPreload = new Promise<void>((resolve) => {
     const timeout = setTimeout(async () => {
       const preloadPromises = endpoints.map(endpoint => {
         if (!preloadCache.has(endpoint)) {
           const promise = fetcher(endpoint).then(data => {
-            // Mise à jour du cache SWR
             mutate(endpoint, data, false);
             return data;
           });
@@ -93,7 +88,6 @@ export const preloadJournalData = async (journalId: string) => {
   return debouncedPreload;
 };
 
-// Fonction pour nettoyer le cache
 const clearPreloadCache = (journalId: string) => {
   const endpoints = [
     `/api/journals/${journalId}/assets`,
@@ -113,38 +107,46 @@ const clearPreloadCache = (journalId: string) => {
 };
 
 export function useJournalData(journalId: string, isEnabled: boolean = true): JournalData {
-  // Configuration des clés de cache
+
   const assetsKey = isEnabled ? `/api/journals/${journalId}/assets` : null;
   const sessionsKey = isEnabled ? `/api/journals/${journalId}/sessions` : null;
   const setupsKey = isEnabled ? `/api/journals/${journalId}/setups` : null;
   const tradesKey = isEnabled ? `/api/journals/${journalId}/trades` : null;
 
-  // Utilisation de SWR pour chaque type de données
+
   const { data: assetsData, error: assetsError, mutate: mutateAssets } = useSWR(
     assetsKey,
     fetcher,
-    swrOptions
+    { ...swrOptions, revalidateOnMount: true }
   );
 
   const { data: sessionsData, error: sessionsError, mutate: mutateSessions } = useSWR(
     sessionsKey,
     fetcher,
-    swrOptions
+    { ...swrOptions, revalidateOnMount: true }
   );
 
   const { data: setupsData, error: setupsError, mutate: mutateSetups } = useSWR(
     setupsKey,
     fetcher,
-    swrOptions
+    { ...swrOptions, revalidateOnMount: true }
   );
 
   const { data: tradesData, error: tradesError, mutate: mutateTrades } = useSWR(
     tradesKey,
     fetcher,
-    swrOptions
+    { ...swrOptions, revalidateOnMount: true }
   );
 
-  // Précharge des données
+
+
+  useEffect(() => {
+    if (isEnabled) {
+      preloadData();
+    }
+  }, [isEnabled, journalId]);
+
+
   const preloadData = async () => {
     if (isEnabled) {
       try {
@@ -155,7 +157,7 @@ export function useJournalData(journalId: string, isEnabled: boolean = true): Jo
     }
   };
 
-  // Mise à jour optimiste des trades
+
   const optimisticUpdateTrades = (newTrade: Trade) => {
     mutateTrades(
       (currentData: any) => {
@@ -168,7 +170,6 @@ export function useJournalData(journalId: string, isEnabled: boolean = true): Jo
     );
   };
 
-  // Rafraîchissement de toutes les données
   const refreshAll = async () => {
     await Promise.all([
       mutateAssets(),
@@ -178,7 +179,6 @@ export function useJournalData(journalId: string, isEnabled: boolean = true): Jo
     ]);
   };
 
-  // Détermination de l'état de chargement
   const isLoading = isEnabled && (
     (!assetsData && !assetsError) ||
     (!sessionsData && !sessionsError) ||
@@ -186,22 +186,19 @@ export function useJournalData(journalId: string, isEnabled: boolean = true): Jo
     (!tradesData && !tradesError)
   );
 
-  // Gestion des erreurs
   const error = assetsError || sessionsError || setupsError || tradesError;
 
-  // Nettoyage du cache lors du démontage
   useEffect(() => {
     return () => {
       clearPreloadCache(journalId);
     };
   }, [journalId]);
 
-  // Retour des données avec des valeurs par défaut
   return {
-    assets: assetsData?.assets || [],
-    sessions: sessionsData?.sessions || [],
-    setups: setupsData?.setups || [],
-    trades: tradesData?.trades || [],
+    assets: assetsData?.assets?.assets || [],
+    sessions: sessionsData?.sessions?.sessions || [],
+    setups: setupsData?.setups?.setups || [],
+    trades: tradesData?.trades?.trades || [],
     isLoading,
     error,
     refreshAll,

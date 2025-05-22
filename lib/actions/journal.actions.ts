@@ -55,6 +55,7 @@ export async function getAssets(journalId: string): Promise<{ assets: Asset[]; e
     .from("assets")
     .select("id, name")
     .eq("user_id", user.id)
+    .eq("journal_id", journalId)
     .order("name");
 
   if (error) return { assets: [], error: error.message };
@@ -70,6 +71,7 @@ export async function getSessions(journalId: string): Promise<{ sessions: Sessio
     .from("sessions")
     .select("id, name")
     .eq("user_id", user.id)
+    .eq("journal_id", journalId)
     .order("name");
 
   if (error) return { sessions: [], error: error.message };
@@ -85,6 +87,7 @@ export async function getSetups(journalId: string): Promise<{ setups: Setup[]; e
     .from("setups")
     .select("id, name")
     .eq("user_id", user.id)
+    .eq("journal_id", journalId)
     .order("name");
 
   if (error) return { setups: [], error: error.message };

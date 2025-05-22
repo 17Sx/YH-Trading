@@ -14,7 +14,6 @@ export function LoadingIndicator({ isLoading, className = '' }: LoadingIndicator
   useEffect(() => {
     let timeout: NodeJS.Timeout;
     if (isLoading) {
-      // Afficher l'indicateur après 300ms pour éviter le clignotement
       timeout = setTimeout(() => setShow(true), 300);
     } else {
       setShow(false);

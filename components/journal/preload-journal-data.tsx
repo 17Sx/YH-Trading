@@ -15,13 +15,11 @@ export function PreloadJournalData({ journalId }: PreloadJournalDataProps) {
   const [isPreloading, setIsPreloading] = useState(false);
 
   useEffect(() => {
-    // Précharge des données au montage du composant
     setIsPreloading(true);
     preloadJournalData(journalId).finally(() => {
       setIsPreloading(false);
     });
 
-    // Précharge des données lors de la navigation
     const handleRouteChange = () => {
       setIsPreloading(true);
       preloadJournalData(journalId).finally(() => {
@@ -29,7 +27,6 @@ export function PreloadJournalData({ journalId }: PreloadJournalDataProps) {
       });
     };
 
-    // Écoute des événements de navigation
     window.addEventListener('popstate', handleRouteChange);
 
     return () => {

@@ -36,10 +36,8 @@ interface ItemManagementType {
   id?: string;
 }
 
-// Fetcher pour SWR
 const fetcher = (url: string) => fetch(url).then(res => res.json());
 
-// Composant optimisé avec React.memo
 export const EditTradeModal = memo(function EditTradeModal({
   isOpen,
   onClose,
@@ -50,7 +48,6 @@ export const EditTradeModal = memo(function EditTradeModal({
   onDataNeedsRefresh,
   journalId,
 }: EditTradeModalProps) {
-  // Initialisation du formulaire
   const {
     control,
     register,
@@ -73,7 +70,6 @@ export const EditTradeModal = memo(function EditTradeModal({
     },
   });
 
-  // Utilisation du hook useJournalData avec précharge des données
   const { 
     assets, 
     sessions, 
@@ -87,7 +83,6 @@ export const EditTradeModal = memo(function EditTradeModal({
   const [durationUnit, setDurationUnit] = useState<'minutes' | 'heures'>('minutes');
   const [itemManagementTarget, setItemManagementTarget] = useState<ItemManagementType | null>(null);
 
-  // Mémorisation des options des listes déroulantes
   const assetOptions = useMemo(() => {
     if (!Array.isArray(assets)) return [];
     return assets.map(a => ({ value: a.id, label: a.name }));
@@ -103,7 +98,6 @@ export const EditTradeModal = memo(function EditTradeModal({
     return setups.map(s => ({ value: s.id, label: s.name }));
   }, [setups]);
 
-  // Réinitialisation du formulaire quand le trade change
   useEffect(() => {
     if (isOpen && trade) {
       let unit: 'minutes' | 'heures' = 'minutes';
@@ -127,7 +121,6 @@ export const EditTradeModal = memo(function EditTradeModal({
     }
   }, [isOpen, trade?.id, reset]);
 
-  // Réinitialisation du formulaire quand la modale se ferme
   useEffect(() => {
     if (!isOpen) {
       setDurationUnit('minutes');
@@ -139,8 +132,7 @@ export const EditTradeModal = memo(function EditTradeModal({
       });
     }
   }, [isOpen, reset]);
-
-  // Mémorisation des callbacks
+  
   const handleOpenManageItemsModal = useCallback((type: ItemType) => {
     setItemManagementTarget({ type });
   }, []);
@@ -164,7 +156,6 @@ export const EditTradeModal = memo(function EditTradeModal({
     onClose();
   }, [onClose]);
 
-  // Mémorisation des composants de sélection
   const AssetSelect = useMemo(() => (
     <Controller
       name="asset_id"
@@ -177,13 +168,13 @@ export const EditTradeModal = memo(function EditTradeModal({
           value={field.value ?? ''}
         >
           <option value="">Sélectionner...</option>
-          {assetOptions.map(option => (
-            <option key={option.value} value={option.value}>{option.label}</option>
+          {Array.isArray(assets) && assets.map(asset => (
+            <option key={asset.id} value={asset.id}>{asset.name}</option>
           ))}
         </select>
       )}
     />
-  ), [control, errors.asset_id, assetOptions]);
+  ), [control, errors.asset_id, assets]);
 
   const SessionSelect = useMemo(() => (
     <Controller
@@ -197,13 +188,13 @@ export const EditTradeModal = memo(function EditTradeModal({
           value={field.value ?? ''}
         >
           <option value="">Sélectionner...</option>
-          {sessionOptions.map(option => (
-            <option key={option.value} value={option.value}>{option.label}</option>
+          {Array.isArray(sessions) && sessions.map(session => (
+            <option key={session.id} value={session.id}>{session.name}</option>
           ))}
         </select>
       )}
     />
-  ), [control, errors.session_id, sessionOptions]);
+  ), [control, errors.session_id, sessions]);
 
   const SetupSelect = useMemo(() => (
     <Controller
@@ -217,13 +208,13 @@ export const EditTradeModal = memo(function EditTradeModal({
           value={field.value ?? ''}
         >
           <option value="">Sélectionner...</option>
-          {setupOptions.map(option => (
-            <option key={option.value} value={option.value}>{option.label}</option>
+          {Array.isArray(setups) && setups.map(setup => (
+            <option key={setup.id} value={setup.id}>{setup.name}</option>
           ))}
         </select>
       )}
     />
-  ), [control, errors.setup_id, setupOptions]);
+  ), [control, errors.setup_id, setups]);
 
   const onSubmitEditTrade: SubmitHandler<AddTradeInput> = useCallback(async (data) => {
     if (!trade) {
@@ -315,17 +306,17 @@ export const EditTradeModal = memo(function EditTradeModal({
 
   if (itemManagementTarget?.type === "asset") {
     currentItemTypeLabel = "Actif";
-    currentItems = assets;
+    currentItems = Array.isArray(assets) ? assets : [];
     currentAddItemAction = addAsset;
     currentDeleteItemAction = deleteAsset;
   } else if (itemManagementTarget?.type === "session") {
     currentItemTypeLabel = "Session";
-    currentItems = sessions;
+    currentItems = Array.isArray(sessions) ? sessions : [];
     currentAddItemAction = addSession;
     currentDeleteItemAction = deleteSession;
   } else if (itemManagementTarget?.type === "setup") {
     currentItemTypeLabel = "Setup";
-    currentItems = setups;
+    currentItems = Array.isArray(setups) ? setups : [];
     currentAddItemAction = addSetup;
     currentDeleteItemAction = deleteSetup;
   }
@@ -345,8 +336,15 @@ export const EditTradeModal = memo(function EditTradeModal({
           <h2 className="text-2xl font-semibold text-purple-300 mb-6">
             Modifier le Trade
           </h2>
-          {!trade && <p className="text-center text-red-400">Chargement des données du trade impossible...</p>}
-          {trade && (
+          {isLoading ? (
+            <div className="flex justify-center items-center py-8">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-500"></div>
+            </div>
+          ) : error ? (
+            <p className="text-center text-red-400">Erreur lors du chargement des données</p>
+          ) : !trade ? (
+            <p className="text-center text-red-400">Chargement des données du trade impossible...</p>
+          ) : (
             <form onSubmit={handleSubmit(onSubmitEditTrade)} className="space-y-5">
               {/* Date */}
               <div>

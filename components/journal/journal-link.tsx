@@ -19,7 +19,7 @@ export function JournalLink({ href, journalId, children, className }: JournalLin
 
   const handleMouseEnter = () => {
     setIsPreloading(true);
-    // Précharge des données au survol
+
     preloadJournalData(journalId).finally(() => {
       setIsPreloading(false);
     });
@@ -28,7 +28,7 @@ export function JournalLink({ href, journalId, children, className }: JournalLin
   const handleClick = (e: React.MouseEvent) => {
     e.preventDefault();
     setIsPreloading(true);
-    // Précharge des données avant la navigation
+
     preloadJournalData(journalId).then(() => {
       router.push(href);
     }).finally(() => {
