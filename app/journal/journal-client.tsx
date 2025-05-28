@@ -175,7 +175,7 @@ export function JournalClient({ journal }: JournalClientProps) {
     reader.onload = async (e) => {
       try {
         const data = new Uint8Array(e.target?.result as ArrayBuffer);
-        const workbook = XLSX.read(data, { type: 'array' });
+        const workbook = XLSX.read(data, { type: 'array', cellDates: true });
         const worksheet = workbook.Sheets[workbook.SheetNames[0]];
         
         if (!worksheet) {
@@ -186,7 +186,9 @@ export function JournalClient({ journal }: JournalClientProps) {
 
         const jsonData = XLSX.utils.sheet_to_json(worksheet, { 
           header: 1,
-          range: 1 
+          range: 1,
+          raw: false,
+          dateNF: 'yyyy-mm-dd'
         }) as any[][];
 
         if (!jsonData || jsonData.length === 0) {
@@ -194,6 +196,165 @@ export function JournalClient({ journal }: JournalClientProps) {
           setIsImporting(false);
           return;
         }
+
+        const parseExcelDate = (value: any): string | null => {
+          if (!value) return null;
+          
+          try {
+            if (typeof value === 'string') {
+              const frenchDateRegex = /^(lundi|mardi|mercredi|jeudi|vendredi|samedi|dimanche)\s+(\d{1,2})\s+(janvier|février|mars|avril|mai|juin|juillet|août|septembre|octobre|novembre|décembre)\s+(\d{4})$/i;
+              const match = value.match(frenchDateRegex);
+              
+              if (match) {
+                const [, day, date, month, year] = match;
+                const monthMap: { [key: string]: number } = {
+                  'janvier': 0, 'février': 1, 'mars': 2, 'avril': 3, 'mai': 4, 'juin': 5,
+                  'juillet': 6, 'août': 7, 'septembre': 8, 'octobre': 9, 'novembre': 10, 'décembre': 11
+                };
+                
+                const monthNum = monthMap[month.toLowerCase()];
+                if (monthNum !== undefined) {
+                  const jsDate = new Date(parseInt(year), monthNum, parseInt(date));
+                  if (!isNaN(jsDate.getTime())) {
+                    return jsDate.toISOString().split('T')[0];
+                  }
+                }
+              }
+              
+              const dateFormats = [
+                /^\d{4}-\d{2}-\d{2}$/,     // YYYY-MM-DD
+                /^\d{2}\/\d{2}\/\d{4}$/,   // DD/MM/YYYY
+                /^\d{2}-\d{2}-\d{4}$/,     // DD-MM-YYYY
+                /^\d{1,2}\/\d{1,2}\/\d{4}$/, // D/M/YYYY ou DD/M/YYYY etc.
+              ];
+              
+              for (const format of dateFormats) {
+                if (format.test(value)) {
+                  let dateStr = value;
+                  
+                  if (value.includes('/') || value.includes('-')) {
+                    const separator = value.includes('/') ? '/' : '-';
+                    const parts = value.split(separator);
+                    if (parts.length === 3) {
+                      if (parts[2].length === 4) {
+                        dateStr = `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
+                      }
+                    }
+                  }
+                  
+                  const date = new Date(dateStr);
+                  if (!isNaN(date.getTime())) {
+                    return date.toISOString().split('T')[0];
+                  }
+                }
+              }
+            }
+            
+            if (typeof value === 'number') {
+              const date = XLSX.SSF.parse_date_code(value);
+              if (date) {
+                const jsDate = new Date(date.y, date.m - 1, date.d);
+                if (!isNaN(jsDate.getTime())) {
+                  return jsDate.toISOString().split('T')[0];
+                }
+              }
+            }
+            
+            const date = new Date(value);
+            if (!isNaN(date.getTime())) {
+              return date.toISOString().split('T')[0];
+            }
+            
+            return null;
+          } catch (error) {
+            console.warn(`Erreur lors du parsing de la date: ${value}`, error);
+            return null;
+          }
+        };
+
+        const createMissingItems = async () => {
+          const { addAsset, addSession, addSetup } = await import('@/lib/actions/journal.actions');
+          
+          const newAssets: Asset[] = [];
+          const newSessions: Session[] = [];
+          const newSetups: Setup[] = [];
+
+          const uniqueAssets = new Set<string>();
+          const uniqueSessions = new Set<string>();
+          const uniqueSetups = new Set<string>();
+
+          for (let i = 0; i < jsonData.length; i++) {
+            const row = jsonData[i];
+            if (!row || row.length === 0) continue;
+
+            const assetName = row[6]; // Colonne G - EURUSD
+            const sessionName = row[11]; // Colonne L
+            const setupName = row[31]; // Colonne AF
+
+            if (assetName && typeof assetName === 'string') {
+              uniqueAssets.add(assetName.trim());
+            }
+            if (sessionName && typeof sessionName === 'string') {
+              uniqueSessions.add(sessionName.trim());
+            }
+            if (setupName && typeof setupName === 'string') {
+              uniqueSetups.add(setupName.trim());
+            }
+          }
+
+          for (const assetName of uniqueAssets) {
+            const existing = journalData.assets.find(a => a.name.toLowerCase() === assetName.toLowerCase());
+            if (!existing) {
+              try {
+                const result = await addAsset(assetName, journal.id);
+                if (result.data) {
+                  newAssets.push(result.data);
+                  console.log(`Asset créé: ${assetName}`);
+                }
+              } catch (error) {
+                console.error(`Erreur lors de la création de l'asset ${assetName}:`, error);
+              }
+            }
+          }
+
+          for (const sessionName of uniqueSessions) {
+            const existing = journalData.sessions.find(s => s.name.toLowerCase() === sessionName.toLowerCase());
+            if (!existing) {
+              try {
+                const result = await addSession(sessionName, journal.id);
+                if (result.data) {
+                  newSessions.push(result.data);
+                  console.log(`Session créée: ${sessionName}`);
+                }
+              } catch (error) {
+                console.error(`Erreur lors de la création de la session ${sessionName}:`, error);
+              }
+            }
+          }
+
+          for (const setupName of uniqueSetups) {
+            const existing = journalData.setups.find(s => s.name.toLowerCase() === setupName.toLowerCase());
+            if (!existing) {
+              try {
+                const result = await addSetup(setupName, journal.id);
+                if (result.data) {
+                  newSetups.push(result.data);
+                  console.log(`Setup créé: ${setupName}`);
+                }
+              } catch (error) {
+                console.error(`Erreur lors de la création du setup ${setupName}:`, error);
+              }
+            }
+          }
+
+          return { newAssets, newSessions, newSetups };
+        };
+
+        const { newAssets, newSessions, newSetups } = await createMissingItems();
+
+        const updatedAssets = [...journalData.assets, ...newAssets];
+        const updatedSessions = [...journalData.sessions, ...newSessions];
+        const updatedSetups = [...journalData.setups, ...newSetups];
 
         const tradesToImport = [];
         const errors = [];
@@ -207,17 +368,19 @@ export function JournalClient({ journal }: JournalClientProps) {
           }
 
           try {
-            const tradeDate = row[0]; // Colonne A
-            const assetName = row[6]; // Colonne G
-            const sessionName = row[11]; // Colonne L
-            const riskInput = row[25]; // Colonne Z
-            const profitLoss = row[28]; // Colonne AC
-            const setupName = row[31]; // Colonne AF
-            const notes = row[36]; // Colonne AK
-            const tradingviewLink = row[50]; // Colonne AY
+            const tradeDateRaw = row[0]; // Colonne A - dates en français
+            const assetName = row[6]; // Colonne G - EURUSD
+            const sessionName = row[11]; // Colonne L - OPEN FF, OPEN LONDON, etc.
+            const riskInput = row[25]; // Colonne Z - 1,00%
+            const profitLoss = row[28]; // Colonne AC - 3,96%, -1,00%
+            const setupName = row[31]; // Colonne AF - LIT CYCLE
+            const notes = row[36]; // Colonne AK - notes ou vide
+            const tradingviewLink = row[50]; // Colonne AY - liens TradingView
 
+            const tradeDate = parseExcelDate(tradeDateRaw);
+            
             if (!tradeDate) {
-              errors.push(`Ligne ${rowNumber}: Date manquante`);
+              errors.push(`Ligne ${rowNumber}: Date invalide ou manquante (valeur: "${tradeDateRaw}")`);
               continue;
             }
 
@@ -226,22 +389,28 @@ export function JournalClient({ journal }: JournalClientProps) {
               continue;
             }
 
-            const asset = journalData.assets.find(a => a.name.toLowerCase() === String(assetName).toLowerCase());
-            const session = sessionName ? journalData.sessions.find(s => s.name.toLowerCase() === String(sessionName).toLowerCase()) : null;
-            const setup = setupName ? journalData.setups.find(s => s.name.toLowerCase() === String(setupName).toLowerCase()) : null;
+            const asset = updatedAssets.find(a => a.name.toLowerCase() === String(assetName).toLowerCase());
+            const session = sessionName ? updatedSessions.find(s => s.name.toLowerCase() === String(sessionName).toLowerCase()) : null;
+            const setup = setupName ? updatedSetups.find(s => s.name.toLowerCase() === String(setupName).toLowerCase()) : null;
 
             if (!asset) {
               errors.push(`Ligne ${rowNumber}: Actif "${assetName}" non trouvé dans le journal`);
               continue;
             }
 
+            let profitLossValue = 0;
+            if (profitLoss) {
+              const cleanValue = String(profitLoss).replace('%', '').replace(',', '.');
+              profitLossValue = parseFloat(cleanValue) || 0;
+            }
+
             const tradeData = {
-              trade_date: new Date(tradeDate).toISOString().split('T')[0],
+              trade_date: tradeDate,
               asset_id: asset.id,
               session_id: session?.id || null,
               setup_id: setup?.id || null,
               risk_input: riskInput ? String(riskInput) : "",
-              profit_loss_amount: profitLoss ? parseFloat(String(profitLoss)) : 0,
+              profit_loss_amount: profitLossValue,
               notes: notes ? String(notes) : "",
               tradingview_link: tradingviewLink ? String(tradingviewLink) : "",
               duration_minutes: null
@@ -286,7 +455,17 @@ export function JournalClient({ journal }: JournalClientProps) {
         }
 
         if (successCount > 0) {
-          toast.success(`${successCount} trade(s) importé(s) avec succès!`);
+          const createdItemsMessage = [];
+          if (newAssets.length > 0) createdItemsMessage.push(`${newAssets.length} actif(s)`);
+          if (newSessions.length > 0) createdItemsMessage.push(`${newSessions.length} session(s)`);
+          if (newSetups.length > 0) createdItemsMessage.push(`${newSetups.length} setup(s)`);
+          
+          let message = `${successCount} trade(s) importé(s) avec succès!`;
+          if (createdItemsMessage.length > 0) {
+            message += ` (${createdItemsMessage.join(', ')} créé(s) automatiquement)`;
+          }
+          
+          toast.success(message);
           await loadData();
         }
 
