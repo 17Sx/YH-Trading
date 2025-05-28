@@ -11,9 +11,18 @@ interface TradesTableProps {
   onRowClick: (trade: Trade) => void;
   onEdit?: (trade: Trade) => void;
   onDelete?: (trade: Trade) => void;
+  selectedTradeIds?: Set<string>;
+  onToggleSelection?: (tradeId: string) => void;
 }
 
-export function TradesTable({ trades, onRowClick, onEdit, onDelete }: TradesTableProps) {
+export function TradesTable({ 
+  trades, 
+  onRowClick, 
+  onEdit, 
+  onDelete, 
+  selectedTradeIds = new Set(), 
+  onToggleSelection 
+}: TradesTableProps) {
   if (!trades || trades.length === 0) {
     return (
       <div className="bg-gray-800/80 p-6 rounded-md shadow-xl min-h-[150px] flex items-center justify-center backdrop-blur-md border border-gray-700/60">
@@ -30,6 +39,30 @@ export function TradesTable({ trades, onRowClick, onEdit, onDelete }: TradesTabl
       <Table className="min-w-full">
         <TableHeader>
           <TableRow className="border-b border-gray-700 hover:bg-gray-700/50">
+            {onToggleSelection && (
+              <TableHead className="py-3 px-4 text-left text-xs font-medium text-purple-300 uppercase tracking-wider w-12">
+                <input
+                  type="checkbox"
+                  checked={selectedTradeIds.size > 0 && selectedTradeIds.size === trades.length}
+                  onChange={(e) => {
+                    if (e.target.checked) {
+                      trades.forEach(trade => {
+                        if (!selectedTradeIds.has(trade.id)) {
+                          onToggleSelection(trade.id);
+                        }
+                      });
+                    } else {
+                      trades.forEach(trade => {
+                        if (selectedTradeIds.has(trade.id)) {
+                          onToggleSelection(trade.id);
+                        }
+                      });
+                    }
+                  }}
+                  className="w-4 h-4 text-purple-600 bg-gray-700 border-gray-600 rounded focus:ring-purple-500 focus:ring-2"
+                />
+              </TableHead>
+            )}
             <TableHead className="py-3 px-4 text-left text-xs font-medium text-purple-300 uppercase tracking-wider">Date</TableHead>
             <TableHead className="py-3 px-4 text-left text-xs font-medium text-purple-300 uppercase tracking-wider">Actif</TableHead>
             <TableHead className="py-3 px-4 text-left text-xs font-medium text-purple-300 uppercase tracking-wider">Session</TableHead>
@@ -48,6 +81,20 @@ export function TradesTable({ trades, onRowClick, onEdit, onDelete }: TradesTabl
               className="hover:bg-gray-700/40 transition-colors cursor-pointer"
               onClick={() => onRowClick(trade)}
             >
+              {onToggleSelection && (
+                <TableCell className="py-3 px-4 whitespace-nowrap text-sm text-gray-200 w-12">
+                  <input
+                    type="checkbox"
+                    checked={selectedTradeIds.has(trade.id)}
+                    onChange={(e) => {
+                      e.stopPropagation();
+                      onToggleSelection(trade.id);
+                    }}
+                    onClick={(e) => e.stopPropagation()}
+                    className="w-4 h-4 text-purple-600 bg-gray-700 border-gray-600 rounded focus:ring-purple-500 focus:ring-2"
+                  />
+                </TableCell>
+              )}
               <TableCell className="py-3 px-4 whitespace-nowrap text-sm text-gray-200">{format(new Date(trade.trade_date), 'dd MMM yyyy', { locale: fr })}</TableCell>
               <TableCell className="py-3 px-4 whitespace-nowrap text-sm text-gray-200">{trade.asset_name || '-'}</TableCell>
               <TableCell className="py-3 px-4 whitespace-nowrap text-sm text-gray-200">{trade.session_name || '-'}</TableCell>

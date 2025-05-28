@@ -21,7 +21,7 @@ import {
   type Journal,
 } from "@/lib/actions/journal.actions";
 import { useEffect, useState, useTransition, useMemo } from "react";
-import { PlusCircle, CalendarDays, File, BookOpen, Upload } from "lucide-react";
+import { PlusCircle, CalendarDays, File, BookOpen, Upload, Trash2 } from "lucide-react";
 import { Toaster, toast } from "sonner";
 import * as XLSX from "xlsx";
 import { Loading } from "@/components/ui/loading";
@@ -50,6 +50,9 @@ export function JournalClient({ journal }: JournalClientProps) {
   const [tradeToDelete, setTradeToDelete] = useState<Trade | null>(null);
   const [isDeletingTrade, setIsDeletingTrade] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
+  const [selectedTradeIds, setSelectedTradeIds] = useState<Set<string>>(new Set());
+  const [isMultiDeleteModalOpen, setIsMultiDeleteModalOpen] = useState(false);
+  const [isDeletingMultiple, setIsDeletingMultiple] = useState(false);
   const [journalData, setJournalData] = useState<JournalPageData>({
     assets: [],
     sessions: [],
@@ -111,6 +114,10 @@ export function JournalClient({ journal }: JournalClientProps) {
     loadData();
   }, [journal.id]);
 
+  useEffect(() => {
+    setSelectedTradeIds(new Set());
+  }, [selectedYear, selectedMonth, viewMode, searchTerm]);
+
   const handleAddModalClose = () => {
     setIsAddModalOpen(false);
     loadData();
@@ -160,6 +167,77 @@ export function JournalClient({ journal }: JournalClientProps) {
       setIsDeletingTrade(false);
       setIsDeleteModalOpen(false);
       setTradeToDelete(null);
+    }
+  };
+
+  const handleToggleTradeSelection = (tradeId: string) => {
+    setSelectedTradeIds(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(tradeId)) {
+        newSet.delete(tradeId);
+      } else {
+        newSet.add(tradeId);
+      }
+      return newSet;
+    });
+  };
+
+  const handleSelectAllTrades = () => {
+    const allTradeIds = filteredTrades.map(trade => trade.id);
+    setSelectedTradeIds(new Set(allTradeIds));
+  };
+
+  const handleDeselectAllTrades = () => {
+    setSelectedTradeIds(new Set());
+  };
+
+  const handleOpenMultiDeleteModal = () => {
+    if (selectedTradeIds.size === 0) {
+      toast.error("Aucun trade sélectionné.");
+      return;
+    }
+    setIsMultiDeleteModalOpen(true);
+  };
+
+  const handleConfirmMultiDelete = async () => {
+    if (selectedTradeIds.size === 0) return;
+    
+    setIsDeletingMultiple(true);
+    let successCount = 0;
+    let failCount = 0;
+
+    try {
+      for (const tradeId of selectedTradeIds) {
+        try {
+          const result = await deleteTrade(tradeId, journal.id);
+          if (result.success) {
+            successCount++;
+          } else {
+            failCount++;
+            console.error(`Erreur lors de la suppression du trade ${tradeId}:`, result.error);
+          }
+        } catch (error) {
+          failCount++;
+          console.error(`Erreur lors de la suppression du trade ${tradeId}:`, error);
+        }
+      }
+
+      if (successCount > 0) {
+        toast.success(`${successCount} trade(s) supprimé(s) avec succès.`);
+        loadData();
+      }
+
+      if (failCount > 0) {
+        toast.error(`${failCount} trade(s) n'ont pas pu être supprimés.`);
+      }
+
+    } catch (error) {
+      toast.error("Une erreur inattendue est survenue lors de la suppression.");
+      console.error("Multi-delete error:", error);
+    } finally {
+      setIsDeletingMultiple(false);
+      setIsMultiDeleteModalOpen(false);
+      setSelectedTradeIds(new Set());
     }
   };
 
@@ -979,12 +1057,56 @@ export function JournalClient({ journal }: JournalClientProps) {
                     Erreur lors du chargement des données du journal : {journalData.error}
                  </div>
             ) : (
-              <TradesTable 
-                trades={filteredTrades} 
-                onRowClick={handleRowClick} 
-                onEdit={handleOpenEditModal}
-                onDelete={handleOpenDeleteModal} 
-              />
+              <>
+                {/* Contrôles de sélection multiple */}
+                {filteredTrades.length > 0 && (
+                  <div className="mb-4 p-4 bg-gray-800/70 rounded-lg shadow-xl backdrop-blur-md border border-gray-700/50">
+                    <div className="flex flex-col sm:flex-row gap-4 items-center justify-between">
+                      <div className="flex items-center gap-4">
+                        <span className="text-sm text-gray-300">
+                          {selectedTradeIds.size > 0 
+                            ? `${selectedTradeIds.size} trade(s) sélectionné(s)`
+                            : 'Aucun trade sélectionné'
+                          }
+                        </span>
+                        <div className="flex gap-2">
+                          <button
+                            onClick={handleSelectAllTrades}
+                            className="px-3 py-2 text-xs bg-gray-700 hover:bg-gray-600 text-gray-200 rounded-md transition-colors"
+                            disabled={selectedTradeIds.size === filteredTrades.length}
+                          >
+                            Tout sélectionner
+                          </button>
+                          <button
+                            onClick={handleDeselectAllTrades}
+                            className="px-3 py-2 text-xs bg-gray-700 hover:bg-gray-600 text-gray-200 rounded-md transition-colors"
+                            disabled={selectedTradeIds.size === 0}
+                          >
+                            Tout déselectionner
+                          </button>
+                        </div>
+                      </div>
+                      <button
+                        onClick={handleOpenMultiDeleteModal}
+                        className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                        disabled={selectedTradeIds.size === 0}
+                      >
+                        <Trash2 size={16} />
+                        Supprimer sélectionnés
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                <TradesTable 
+                  trades={filteredTrades} 
+                  onRowClick={handleRowClick} 
+                  onEdit={handleOpenEditModal}
+                  onDelete={handleOpenDeleteModal}
+                  selectedTradeIds={selectedTradeIds}
+                  onToggleSelection={handleToggleTradeSelection}
+                />
+              </>
             )}
 
 
@@ -1028,6 +1150,19 @@ export function JournalClient({ journal }: JournalClientProps) {
               : null
           }
           isPending={isDeletingTrade}
+        />
+
+        {/* Modal de confirmation pour suppression multiple */}
+        <DeleteTradeConfirmationModal
+          isOpen={isMultiDeleteModalOpen}
+          onClose={() => setIsMultiDeleteModalOpen(false)}
+          onConfirm={handleConfirmMultiDelete}
+          tradeIdentifier={
+            selectedTradeIds.size > 0
+              ? `${selectedTradeIds.size} trade(s) sélectionné(s)`
+              : null
+          }
+          isPending={isDeletingMultiple}
         />
       </div>
     </>
