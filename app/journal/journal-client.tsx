@@ -21,7 +21,7 @@ import {
   type Journal,
 } from "@/lib/actions/journal.actions";
 import { useEffect, useState, useTransition, useMemo } from "react";
-import { PlusCircle, CalendarDays, File, BookOpen } from "lucide-react";
+import { PlusCircle, CalendarDays, File, BookOpen, Upload } from "lucide-react";
 import { Toaster, toast } from "sonner";
 import * as XLSX from "xlsx";
 import { Loading } from "@/components/ui/loading";
@@ -49,6 +49,7 @@ export function JournalClient({ journal }: JournalClientProps) {
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [tradeToDelete, setTradeToDelete] = useState<Trade | null>(null);
   const [isDeletingTrade, setIsDeletingTrade] = useState(false);
+  const [isImporting, setIsImporting] = useState(false);
   const [journalData, setJournalData] = useState<JournalPageData>({
     assets: [],
     sessions: [],
@@ -160,6 +161,161 @@ export function JournalClient({ journal }: JournalClientProps) {
       setIsDeleteModalOpen(false);
       setTradeToDelete(null);
     }
+  };
+
+  function importFromExcel(file: File) {
+    if (!file) {
+      toast.error("Aucun fichier sélectionné.");
+      return;
+    }
+
+    setIsImporting(true);
+    const reader = new FileReader();
+    
+    reader.onload = async (e) => {
+      try {
+        const data = new Uint8Array(e.target?.result as ArrayBuffer);
+        const workbook = XLSX.read(data, { type: 'array' });
+        const worksheet = workbook.Sheets[workbook.SheetNames[0]];
+        
+        if (!worksheet) {
+          toast.error("Aucune feuille de calcul trouvée dans le fichier.");
+          setIsImporting(false);
+          return;
+        }
+
+        const jsonData = XLSX.utils.sheet_to_json(worksheet, { 
+          header: 1,
+          range: 1 
+        }) as any[][];
+
+        if (!jsonData || jsonData.length === 0) {
+          toast.error("Le fichier Excel est vide ou ne contient pas de données valides.");
+          setIsImporting(false);
+          return;
+        }
+
+        const tradesToImport = [];
+        const errors = [];
+
+        for (let i = 0; i < jsonData.length; i++) {
+          const row = jsonData[i];
+          const rowNumber = i + 2; 
+
+          if (!row || row.length === 0 || !row.some(cell => cell !== undefined && cell !== null && cell !== '')) {
+            continue;
+          }
+
+          try {
+            const tradeDate = row[0]; // Colonne A
+            const assetName = row[6]; // Colonne G
+            const sessionName = row[11]; // Colonne L
+            const riskInput = row[25]; // Colonne Z
+            const profitLoss = row[28]; // Colonne AC
+            const setupName = row[31]; // Colonne AF
+            const notes = row[36]; // Colonne AK
+            const tradingviewLink = row[50]; // Colonne AY
+
+            if (!tradeDate) {
+              errors.push(`Ligne ${rowNumber}: Date manquante`);
+              continue;
+            }
+
+            if (!assetName) {
+              errors.push(`Ligne ${rowNumber}: Actif manquant`);
+              continue;
+            }
+
+            const asset = journalData.assets.find(a => a.name.toLowerCase() === String(assetName).toLowerCase());
+            const session = sessionName ? journalData.sessions.find(s => s.name.toLowerCase() === String(sessionName).toLowerCase()) : null;
+            const setup = setupName ? journalData.setups.find(s => s.name.toLowerCase() === String(setupName).toLowerCase()) : null;
+
+            if (!asset) {
+              errors.push(`Ligne ${rowNumber}: Actif "${assetName}" non trouvé dans le journal`);
+              continue;
+            }
+
+            const tradeData = {
+              trade_date: new Date(tradeDate).toISOString().split('T')[0],
+              asset_id: asset.id,
+              session_id: session?.id || null,
+              setup_id: setup?.id || null,
+              risk_input: riskInput ? String(riskInput) : "",
+              profit_loss_amount: profitLoss ? parseFloat(String(profitLoss)) : 0,
+              notes: notes ? String(notes) : "",
+              tradingview_link: tradingviewLink ? String(tradingviewLink) : "",
+              duration_minutes: null
+            };
+
+            tradesToImport.push(tradeData);
+
+          } catch (error) {
+            errors.push(`Ligne ${rowNumber}: Erreur de parsing - ${error}`);
+          }
+        }
+
+        if (errors.length > 0) {
+          console.warn("Erreurs d'import:", errors);
+          toast.warning(`${errors.length} ligne(s) ignorée(s) à cause d'erreurs. Vérifiez la console pour plus de détails.`);
+        }
+
+        if (tradesToImport.length === 0) {
+          toast.error("Aucun trade valide trouvé dans le fichier.");
+          setIsImporting(false);
+          return;
+        }
+
+        let successCount = 0;
+        let failCount = 0;
+
+        for (const tradeData of tradesToImport) {
+          try {
+            const { addTrade } = await import('@/lib/actions/journal.actions');
+            const result = await addTrade(tradeData, journal.id);
+            
+            if (result.success) {
+              successCount++;
+            } else {
+              failCount++;
+              console.error("Erreur lors de l'ajout du trade:", result.error);
+            }
+          } catch (error) {
+            failCount++;
+            console.error("Erreur lors de l'ajout du trade:", error);
+          }
+        }
+
+        if (successCount > 0) {
+          toast.success(`${successCount} trade(s) importé(s) avec succès!`);
+          await loadData();
+        }
+
+        if (failCount > 0) {
+          toast.error(`${failCount} trade(s) n'ont pas pu être importés.`);
+        }
+
+      } catch (error) {
+        console.error("Erreur lors de l'import:", error);
+        toast.error("Erreur lors de la lecture du fichier Excel.");
+      } finally {
+        setIsImporting(false);
+      }
+    };
+
+    reader.onerror = () => {
+      toast.error("Erreur lors de la lecture du fichier.");
+      setIsImporting(false);
+    };
+
+    reader.readAsArrayBuffer(file);
+  }
+
+  const handleFileImport = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      importFromExcel(file);
+    }
+    event.target.value = '';
   };
 
   const yearOptions = useMemo(() => {
@@ -461,12 +617,35 @@ export function JournalClient({ journal }: JournalClientProps) {
                 </div>
               </div>
               <div className="flex flex-row gap-4">
+                <input
+                  type="file"
+                  accept=".xlsx,.xls"
+                  onChange={handleFileImport}
+                  style={{ display: 'none' }}
+                  id="excel-import-input"
+                  disabled={isLoading || isNavigating || isImporting}
+                />
+                <button
+                  type="button"
+                  className="mt-4 sm:mt-0 bg-green-600 hover:bg-green-700 text-white font-semibold py-2.5 px-5 rounded-md transition-colors duration-300 focus:ring-2 focus:ring-green-400 focus:ring-offset-2 focus:ring-offset-gray-900 flex items-center disabled:opacity-50 disabled:cursor-not-allowed"
+                  aria-label="Import trades from Excel"
+                  onClick={() => document.getElementById('excel-import-input')?.click()}
+                  disabled={isLoading || isNavigating || isImporting}
+                >
+                  {isImporting ? (
+                    <Loading size="sm" variant="default" className="mr-2" />
+                  ) : (
+                    <Upload size={20} className="mr-2" />
+                  )}
+                  {isImporting ? 'Import en cours...' : 'Import Excel'}
+                </button>
+
                 <button
                   type="button"
                   className="mt-4 sm:mt-0 bg-purple-600 hover:bg-purple-700 text-white font-semibold py-2.5 px-5 rounded-md transition-colors duration-300 focus:ring-2 focus:ring-purple-400 focus:ring-offset-2 focus:ring-offset-gray-900 flex items-center disabled:opacity-50 disabled:cursor-not-allowed"
                   aria-label="Export trades to Excel"
                   onClick={() => exportToExcel(filteredTrades, `trades-${selectedMonth + 1}-${selectedYear}.xlsx`)}
-                  disabled={isLoading || isNavigating}
+                  disabled={isLoading || isNavigating || isImporting}
                 >
                   {isLoading ? (
                     <Loading size="sm" variant="default" className="mr-2" />
