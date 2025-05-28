@@ -586,7 +586,7 @@ export function JournalClient({ journal }: JournalClientProps) {
                 </div>
                 <div className="bg-gray-700/50 p-4 rounded-md">
                   <p className="text-sm text-purple-300 mb-1">Neutres (BE)</p>
-                  <p className="text-xl font-semibold text-gray-400">{monthlyStats.numBE}</p>
+                  <p className="text-xl font-semibold text-blue-400">{monthlyStats.numBE}</p>
                 </div>
               </div>
             </div>
