@@ -355,7 +355,7 @@ export default function JournalsPage() {
                     <div className="flex flex-col">
                       <span className="text-sm text-gray-500">Performance</span>
                       <span className={`text-lg font-semibold ${journal.performance >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-                        {journal.performance >= 0 ? '+' : ''}{journal.performance}%
+                        {journal.performance >= 0 ? '+' : ''}{journal.performance.toFixed(2)}%
                       </span>
                     </div>
                     <div className="flex flex-col">
@@ -367,7 +367,7 @@ export default function JournalsPage() {
                     <div className="flex flex-col">
                       <span className="text-sm text-gray-500">Win Rate</span>
                       <span className="text-lg font-semibold text-blue-400">
-                        {journal.win_rate}%
+                        {journal.win_rate.toFixed(2)}%
                       </span>
                     </div>
                     <div className="flex flex-col">
