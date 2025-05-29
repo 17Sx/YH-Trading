@@ -53,7 +53,7 @@ export function JournalClient({ journal }: JournalClientProps) {
   const [selectedTradeIds, setSelectedTradeIds] = useState<Set<string>>(new Set());
   const [isMultiDeleteModalOpen, setIsMultiDeleteModalOpen] = useState(false);
   const [isDeletingMultiple, setIsDeletingMultiple] = useState(false);
-  const [journalData, setJournalData] = useState<JournalPageData>({
+  const [journalData, setJournalData] = useState<JournalPageData>({ 
     assets: [],
     sessions: [],
     setups: [],

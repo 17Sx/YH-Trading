@@ -100,7 +100,13 @@ export function TradesTable({
               <TableCell className="py-3 px-4 whitespace-nowrap text-sm text-gray-200">{trade.session_name || '-'}</TableCell>
               <TableCell className="py-3 px-4 whitespace-nowrap text-sm text-gray-200">{trade.setup_name || '-'}</TableCell>
               <TableCell className="py-3 px-4 whitespace-nowrap text-sm text-gray-200">{trade.risk_input}</TableCell>
-              <TableCell className={`py-3 px-4 whitespace-nowrap text-sm text-right font-semibold ${trade.profit_loss_amount >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+              <TableCell className={`py-3 px-4 whitespace-nowrap text-sm text-right font-semibold ${
+                trade.profit_loss_amount > 0 
+                  ? 'text-green-400' 
+                  : trade.profit_loss_amount < 0 
+                  ? 'text-red-400' 
+                  : 'text-blue-400'
+              }`}>
                 {/* Affichage en devise si currency est disponible, sinon en pourcentage */}
                 {trade.profit_loss_amount.toFixed(2)}%
               </TableCell>

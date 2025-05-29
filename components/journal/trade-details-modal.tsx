@@ -22,7 +22,7 @@ export function TradeDetailsModal({
     ? "text-green-400" 
     : trade.profit_loss_amount < 0 
     ? "text-red-400" 
-    : "text-gray-400";
+    : "text-blue-400";
   
  const formattedPnl = `${trade.profit_loss_amount.toFixed(2)}%`;
 
