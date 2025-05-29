@@ -12,7 +12,7 @@ export async function GET(
       return cachedResponse;
     }
 
-    const assets = await getAssets(params.journalId);
+    const assets = await getAssets();
     const response = { assets };
 
     setCachedResponse(request as any, response);

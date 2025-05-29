@@ -80,9 +80,9 @@ export function JournalClient({ journal }: JournalClientProps) {
           setupsResult,
           tradesResult
         ] = await Promise.all([
-          getAssets(journal.id),
-          getSessions(journal.id),
-          getSetups(journal.id),
+          getAssets(),
+          getSessions(),
+          getSetups(),
           getTrades(journal.id),
         ]);
 
@@ -280,6 +280,8 @@ export function JournalClient({ journal }: JournalClientProps) {
           
           try {
             if (typeof value === 'string') {
+              console.log(`Parsing date string: "${value}"`);
+              
               const frenchDateRegex = /^(lundi|mardi|mercredi|jeudi|vendredi|samedi|dimanche)\s+(\d{1,2})\s+(janvier|février|mars|avril|mai|juin|juillet|août|septembre|octobre|novembre|décembre)\s+(\d{4})$/i;
               const match = value.match(frenchDateRegex);
               
@@ -294,7 +296,9 @@ export function JournalClient({ journal }: JournalClientProps) {
                 if (monthNum !== undefined) {
                   const jsDate = new Date(parseInt(year), monthNum, parseInt(date));
                   if (!isNaN(jsDate.getTime())) {
-                    return jsDate.toISOString().split('T')[0];
+                    const result = jsDate.toISOString().split('T')[0];
+                    console.log(`Parsed French date: "${value}" -> "${result}"`);
+                    return result;
                   }
                 }
               }
@@ -322,27 +326,43 @@ export function JournalClient({ journal }: JournalClientProps) {
                   
                   const date = new Date(dateStr);
                   if (!isNaN(date.getTime())) {
-                    return date.toISOString().split('T')[0];
+                    const result = date.toISOString().split('T')[0];
+                    console.log(`Parsed standard date: "${value}" -> "${result}"`);
+                    return result;
                   }
                 }
               }
             }
             
             if (typeof value === 'number') {
+              console.log(`Parsing Excel serial number: ${value}`);
               const date = XLSX.SSF.parse_date_code(value);
               if (date) {
                 const jsDate = new Date(date.y, date.m - 1, date.d);
                 if (!isNaN(jsDate.getTime())) {
-                  return jsDate.toISOString().split('T')[0];
+                  const result = jsDate.toISOString().split('T')[0];
+                  console.log(`Parsed Excel serial: ${value} -> "${result}"`);
+                  return result;
                 }
+              }
+            }
+            
+            if (value instanceof Date) {
+              if (!isNaN(value.getTime())) {
+                const result = value.toISOString().split('T')[0];
+                console.log(`Using existing Date object: "${result}"`);
+                return result;
               }
             }
             
             const date = new Date(value);
             if (!isNaN(date.getTime())) {
-              return date.toISOString().split('T')[0];
+              const result = date.toISOString().split('T')[0];
+              console.log(`Parsed with new Date(): "${value}" -> "${result}"`);
+              return result;
             }
             
+            console.warn(`Could not parse date: "${value}" (type: ${typeof value})`);
             return null;
           } catch (error) {
             console.warn(`Erreur lors du parsing de la date: ${value}`, error);
@@ -361,6 +381,8 @@ export function JournalClient({ journal }: JournalClientProps) {
           const uniqueSessions = new Set<string>();
           const uniqueSetups = new Set<string>();
 
+          console.log(`Analyzing ${jsonData.length} rows for unique items...`);
+
           for (let i = 0; i < jsonData.length; i++) {
             const row = jsonData[i];
             if (!row || row.length === 0) continue;
@@ -369,29 +391,49 @@ export function JournalClient({ journal }: JournalClientProps) {
             const sessionName = row[11]; // Colonne L
             const setupName = row[31]; // Colonne AF
 
-            if (assetName && typeof assetName === 'string') {
+            if (assetName && typeof assetName === 'string' && assetName.trim()) {
               uniqueAssets.add(assetName.trim());
             }
-            if (sessionName && typeof sessionName === 'string') {
+            if (sessionName && typeof sessionName === 'string' && sessionName.trim()) {
               uniqueSessions.add(sessionName.trim());
             }
-            if (setupName && typeof setupName === 'string') {
+            if (setupName && typeof setupName === 'string' && setupName.trim()) {
               uniqueSetups.add(setupName.trim());
             }
           }
+
+          console.log('Unique items found:', {
+            assets: Array.from(uniqueAssets),
+            sessions: Array.from(uniqueSessions),
+            setups: Array.from(uniqueSetups)
+          });
+
+          console.log('Existing items in current journal:', {
+            assets: journalData.assets.map(a => a.name),
+            sessions: journalData.sessions.map(s => s.name),
+            setups: journalData.setups.map(s => s.name)
+          });
 
           for (const assetName of uniqueAssets) {
             const existing = journalData.assets.find(a => a.name.toLowerCase() === assetName.toLowerCase());
             if (!existing) {
               try {
-                const result = await addAsset(assetName, journal.id);
+                console.log(`Creating asset: "${assetName}" (global)`);
+                const result = await addAsset(assetName);
                 if (result.data) {
                   newAssets.push(result.data);
-                  console.log(`Asset créé: ${assetName}`);
+                  console.log(`Asset créé: ${assetName} (ID: ${result.data.id})`);
+                } else if (result.error) {
+                  console.error(`Failed to create asset "${assetName}":`, result.error);
+                  if (result.error.includes('existe déjà')) {
+                    console.log(`Asset "${assetName}" exists globally - this is fine for global assets`);
+                  }
                 }
               } catch (error) {
                 console.error(`Erreur lors de la création de l'asset ${assetName}:`, error);
               }
+            } else {
+              console.log(`Asset "${assetName}" already exists globally`);
             }
           }
 
@@ -399,14 +441,22 @@ export function JournalClient({ journal }: JournalClientProps) {
             const existing = journalData.sessions.find(s => s.name.toLowerCase() === sessionName.toLowerCase());
             if (!existing) {
               try {
-                const result = await addSession(sessionName, journal.id);
+                console.log(`Creating session: "${sessionName}" (global)`);
+                const result = await addSession(sessionName);
                 if (result.data) {
                   newSessions.push(result.data);
-                  console.log(`Session créée: ${sessionName}`);
+                  console.log(`Session créée: ${sessionName} (ID: ${result.data.id})`);
+                } else if (result.error) {
+                  console.error(`Failed to create session "${sessionName}":`, result.error);
+                  if (result.error.includes('existe déjà')) {
+                    console.log(`Session "${sessionName}" exists globally - this is fine for global sessions`);
+                  }
                 }
               } catch (error) {
                 console.error(`Erreur lors de la création de la session ${sessionName}:`, error);
               }
+            } else {
+              console.log(`Session "${sessionName}" already exists globally`);
             }
           }
 
@@ -414,25 +464,61 @@ export function JournalClient({ journal }: JournalClientProps) {
             const existing = journalData.setups.find(s => s.name.toLowerCase() === setupName.toLowerCase());
             if (!existing) {
               try {
-                const result = await addSetup(setupName, journal.id);
+                console.log(`Creating setup: "${setupName}" (global)`);
+                const result = await addSetup(setupName);
                 if (result.data) {
                   newSetups.push(result.data);
-                  console.log(`Setup créé: ${setupName}`);
+                  console.log(`Setup créé: ${setupName} (ID: ${result.data.id})`);
+                } else if (result.error) {
+                  console.error(`Failed to create setup "${setupName}":`, result.error);
+                  if (result.error.includes('existe déjà')) {
+                    console.log(`Setup "${setupName}" exists globally - this is fine for global setups`);
+                  }
                 }
               } catch (error) {
                 console.error(`Erreur lors de la création du setup ${setupName}:`, error);
               }
+            } else {
+              console.log(`Setup "${setupName}" already exists globally`);
             }
           }
+
+          console.log('New items created:', {
+            assets: newAssets.length,
+            sessions: newSessions.length,
+            setups: newSetups.length
+          });
 
           return { newAssets, newSessions, newSetups };
         };
 
         const { newAssets, newSessions, newSetups } = await createMissingItems();
 
-        const updatedAssets = [...journalData.assets, ...newAssets];
-        const updatedSessions = [...journalData.sessions, ...newSessions];
-        const updatedSetups = [...journalData.setups, ...newSetups];
+        let currentAssets = journalData.assets;
+        let currentSessions = journalData.sessions;
+        let currentSetups = journalData.setups;
+        
+        if (newAssets.length > 0 || newSessions.length > 0 || newSetups.length > 0) {
+          console.log('Reloading journal data to include new items...');
+          
+          const [
+            freshAssetsResult,
+            freshSessionsResult,
+            freshSetupsResult
+          ] = await Promise.all([
+            import('@/lib/actions/journal.actions').then(m => m.getAssets()),
+            import('@/lib/actions/journal.actions').then(m => m.getSessions()),
+            import('@/lib/actions/journal.actions').then(m => m.getSetups()),
+          ]);
+          
+          currentAssets = freshAssetsResult.assets || [];
+          currentSessions = freshSessionsResult.sessions || [];
+          currentSetups = freshSetupsResult.setups || [];
+        }
+
+        const updatedAssets = currentAssets;
+        const updatedSessions = currentSessions;
+        const updatedSetups = currentSetups;
 
         const tradesToImport = [];
         const errors = [];
@@ -446,6 +532,8 @@ export function JournalClient({ journal }: JournalClientProps) {
           }
 
           try {
+            console.log(`Processing row ${rowNumber}:`, row.slice(0, 60)); // Log des premières colonnes
+            
             const tradeDateRaw = row[0]; // Colonne A - dates en français
             const assetName = row[6]; // Colonne G - EURUSD
             const sessionName = row[11]; // Colonne L - OPEN FF, OPEN LONDON, etc.
@@ -455,24 +543,38 @@ export function JournalClient({ journal }: JournalClientProps) {
             const notes = row[36]; // Colonne AK - notes ou vide
             const tradingviewLink = row[50]; // Colonne AY - liens TradingView
 
+            console.log(`Row ${rowNumber} data:`, {
+              tradeDateRaw,
+              assetName,
+              sessionName,
+              riskInput,
+              profitLoss,
+              setupName,
+              notes,
+              tradingviewLink
+            });
+
             const tradeDate = parseExcelDate(tradeDateRaw);
             
             if (!tradeDate) {
-              errors.push(`Ligne ${rowNumber}: Date invalide ou manquante (valeur: "${tradeDateRaw}")`);
+              errors.push(`Ligne ${rowNumber}: Date invalide ou manquante (valeur: "${tradeDateRaw}", type: ${typeof tradeDateRaw})`);
+              console.error(`Row ${rowNumber}: Date parsing failed for value:`, tradeDateRaw);
               continue;
             }
 
-            if (!assetName) {
-              errors.push(`Ligne ${rowNumber}: Actif manquant`);
+            if (!assetName || String(assetName).trim() === '') {
+              errors.push(`Ligne ${rowNumber}: Actif manquant (valeur: "${assetName}")`);
+              console.error(`Row ${rowNumber}: Asset missing:`, assetName);
               continue;
             }
 
-            const asset = updatedAssets.find(a => a.name.toLowerCase() === String(assetName).toLowerCase());
-            const session = sessionName ? updatedSessions.find(s => s.name.toLowerCase() === String(sessionName).toLowerCase()) : null;
-            const setup = setupName ? updatedSetups.find(s => s.name.toLowerCase() === String(setupName).toLowerCase()) : null;
+            const asset = updatedAssets.find(a => a.name.toLowerCase() === String(assetName).toLowerCase().trim());
+            const session = sessionName ? updatedSessions.find(s => s.name.toLowerCase() === String(sessionName).toLowerCase().trim()) : null;
+            const setup = setupName ? updatedSetups.find(s => s.name.toLowerCase() === String(setupName).toLowerCase().trim()) : null;
 
             if (!asset) {
-              errors.push(`Ligne ${rowNumber}: Actif "${assetName}" non trouvé dans le journal`);
+              errors.push(`Ligne ${rowNumber}: Actif "${assetName}" non trouvé dans le journal (assets disponibles: ${updatedAssets.map(a => a.name).join(', ')})`);
+              console.error(`Row ${rowNumber}: Asset not found:`, assetName, 'Available:', updatedAssets.map(a => a.name));
               continue;
             }
 
@@ -494,16 +596,41 @@ export function JournalClient({ journal }: JournalClientProps) {
               duration_minutes: null
             };
 
+            console.log(`Row ${rowNumber}: Trade data prepared:`, tradeData);
             tradesToImport.push(tradeData);
 
           } catch (error) {
             errors.push(`Ligne ${rowNumber}: Erreur de parsing - ${error}`);
+            console.error(`Row ${rowNumber}: Parsing error:`, error, 'Raw row:', row);
           }
         }
 
         if (errors.length > 0) {
           console.warn("Erreurs d'import:", errors);
-          toast.warning(`${errors.length} ligne(s) ignorée(s) à cause d'erreurs. Vérifiez la console pour plus de détails.`);
+          console.warn("Pour plus de détails, activez les logs de débogage en ajoutant '?debug=true' à l'URL");
+          
+          const errorsByType = errors.reduce((acc, error) => {
+            if (error.includes('Date invalide')) {
+              acc.dateErrors = (acc.dateErrors || 0) + 1;
+            } else if (error.includes('Actif manquant')) {
+              acc.assetMissingErrors = (acc.assetMissingErrors || 0) + 1;
+            } else if (error.includes('non trouvé dans le journal')) {
+              acc.assetNotFoundErrors = (acc.assetNotFoundErrors || 0) + 1;
+            } else {
+              acc.otherErrors = (acc.otherErrors || 0) + 1;
+            }
+            return acc;
+          }, {} as Record<string, number>);
+
+          console.warn("Résumé des erreurs:", errorsByType);
+          
+          let errorMessage = `${errors.length} ligne(s) ignorée(s). Types d'erreurs:\n`;
+          if (errorsByType.dateErrors) errorMessage += `- ${errorsByType.dateErrors} erreur(s) de date\n`;
+          if (errorsByType.assetMissingErrors) errorMessage += `- ${errorsByType.assetMissingErrors} actif(s) manquant(s)\n`;
+          if (errorsByType.assetNotFoundErrors) errorMessage += `- ${errorsByType.assetNotFoundErrors} actif(s) non trouvé(s)\n`;
+          if (errorsByType.otherErrors) errorMessage += `- ${errorsByType.otherErrors} autre(s) erreur(s)\n`;
+          
+          toast.warning(errorMessage + "Consultez la console pour plus de détails.");
         }
 
         if (tradesToImport.length === 0) {

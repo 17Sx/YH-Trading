@@ -46,7 +46,7 @@ export interface Journal {
   user_id: string;
 }
 
-export async function getAssets(journalId: string): Promise<{ assets: Asset[]; error?: string }> {
+export async function getAssets(journalId?: string): Promise<{ assets: Asset[]; error?: string }> {
   const supabase = createSupabaseActionClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { assets: [], error: "Utilisateur non authentifié." };
@@ -55,14 +55,13 @@ export async function getAssets(journalId: string): Promise<{ assets: Asset[]; e
     .from("assets")
     .select("id, name")
     .eq("user_id", user.id)
-    .eq("journal_id", journalId)
     .order("name");
 
   if (error) return { assets: [], error: error.message };
   return { assets: data || [] };
 }
 
-export async function getSessions(journalId: string): Promise<{ sessions: Session[]; error?: string }> {
+export async function getSessions(journalId?: string): Promise<{ sessions: Session[]; error?: string }> {
   const supabase = createSupabaseActionClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { sessions: [], error: "Utilisateur non authentifié." };
@@ -71,14 +70,13 @@ export async function getSessions(journalId: string): Promise<{ sessions: Sessio
     .from("sessions")
     .select("id, name")
     .eq("user_id", user.id)
-    .eq("journal_id", journalId)
     .order("name");
 
   if (error) return { sessions: [], error: error.message };
   return { sessions: data || [] };
 }
 
-export async function getSetups(journalId: string): Promise<{ setups: Setup[]; error?: string }> {
+export async function getSetups(journalId?: string): Promise<{ setups: Setup[]; error?: string }> {
   const supabase = createSupabaseActionClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { setups: [], error: "Utilisateur non authentifié." };
@@ -87,7 +85,6 @@ export async function getSetups(journalId: string): Promise<{ setups: Setup[]; e
     .from("setups")
     .select("id, name")
     .eq("user_id", user.id)
-    .eq("journal_id", journalId)
     .order("name");
 
   if (error) return { setups: [], error: error.message };
@@ -198,8 +195,7 @@ export async function getTrades(journalId: string): Promise<{ trades: Trade[]; e
 
 async function addItem(
   itemName: string,
-  tableName: "assets" | "sessions" | "setups",
-  journalId: string
+  tableName: "assets" | "sessions" | "setups"
 ): Promise<{ data?: { id: string; name: string }; error?: string; issues?: z.ZodIssue[] }> {
   const supabase = createSupabaseActionClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -231,8 +227,7 @@ async function addItem(
     .from(tableName)
     .insert({ 
       user_id: user.id, 
-      name: itemName.trim(),
-      journal_id: journalId
+      name: itemName.trim()
     })
     .select("id, name")
     .single();
@@ -246,23 +241,22 @@ async function addItem(
   return { data: newItem };
 }
 
-export async function addAsset(name: string, journalId: string): Promise<{ data?: Asset; error?: string; issues?: z.ZodIssue[] }> {
-  return addItem(name, "assets", journalId);
+export async function addAsset(name: string): Promise<{ data?: Asset; error?: string; issues?: z.ZodIssue[] }> {
+  return addItem(name, "assets");
 }
 
-export async function addSession(name: string, journalId: string): Promise<{ data?: Session; error?: string; issues?: z.ZodIssue[] }> {
-  return addItem(name, "sessions", journalId);
+export async function addSession(name: string): Promise<{ data?: Session; error?: string; issues?: z.ZodIssue[] }> {
+  return addItem(name, "sessions");
 }
 
-export async function addSetup(name: string, journalId: string): Promise<{ data?: Setup; error?: string; issues?: z.ZodIssue[] }> {
-  return addItem(name, "setups", journalId);
+export async function addSetup(name: string): Promise<{ data?: Setup; error?: string; issues?: z.ZodIssue[] }> {
+  return addItem(name, "setups");
 }
 
 
 async function deleteItem(
   itemId: string,
-  tableName: "assets" | "sessions" | "setups",
-  journalId: string
+  tableName: "assets" | "sessions" | "setups"
 ): Promise<{ success?: boolean; error?: string }> {
   const supabase = createSupabaseActionClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -288,16 +282,16 @@ async function deleteItem(
   return { success: true };
 }
 
-export async function deleteAsset(id: string, journalId: string): Promise<{ success?: boolean; error?: string }> {
-  return deleteItem(id, "assets", journalId);
+export async function deleteAsset(id: string): Promise<{ success?: boolean; error?: string }> {
+  return deleteItem(id, "assets");
 }
 
-export async function deleteSession(id: string, journalId: string): Promise<{ success?: boolean; error?: string }> {
-  return deleteItem(id, "sessions", journalId);
+export async function deleteSession(id: string): Promise<{ success?: boolean; error?: string }> {
+  return deleteItem(id, "sessions");
 }
 
-export async function deleteSetup(id: string, journalId: string): Promise<{ success?: boolean; error?: string }> {
-  return deleteItem(id, "setups", journalId);
+export async function deleteSetup(id: string): Promise<{ success?: boolean; error?: string }> {
+  return deleteItem(id, "setups");
 }
 
 export async function deleteTrade(id: string, journalId: string): Promise<{ success?: boolean; error?: string }> {

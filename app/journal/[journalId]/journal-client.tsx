@@ -21,9 +21,9 @@ export function JournalClient({ journal }: JournalClientProps) {
 
   const loadData = async () => {
     const [assetsData, sessionsData, setupsData] = await Promise.all([
-      getAssets(journal.id),
-      getSessions(journal.id),
-      getSetups(journal.id),
+      getAssets(),
+      getSessions(),
+      getSetups(),
     ]);
 
     if (assetsData.assets) setAssets(assetsData.assets);

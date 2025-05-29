@@ -13,7 +13,7 @@ export async function GET(
       return cachedResponse;
     }
 
-    const setups = await getSetups(params.journalId);
+    const setups = await getSetups();
     const response = { setups };
 
 
