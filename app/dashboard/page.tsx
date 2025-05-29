@@ -226,9 +226,9 @@ export default async function DashboardPage({
 
 
           <section className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 md:gap-4">
-            <StatCard title="Trades Totaux" value={stats.totalTrades.toString()} icon={<BuildingStorefrontIcon className="h-6 w-6 md:h-7 md:w-7 text-purple-400" />} />
-            <StatCard title="Winrate" value={`${stats.winRate.toFixed(2)}${pnlSuffix}`} icon={<ChartBarIcon className="h-6 w-6 md:h-7 md:w-7 text-purple-400" />} />
             <StatCard title="Performance Total" value={`${stats.totalPnl.toFixed(2)}${stats.totalPnl !== 0 ? pnlSuffix : ''}`} icon={<ScaleIcon className="h-6 w-6 md:h-7 md:w-7 text-purple-400" />} />
+            <StatCard title="Winrate" value={`${stats.winRate.toFixed(2)}${pnlSuffix}`} icon={<ChartBarIcon className="h-6 w-6 md:h-7 md:w-7 text-purple-400" />} />
+            <StatCard title="Trades Totaux" value={stats.totalTrades.toString()} icon={<BuildingStorefrontIcon className="h-6 w-6 md:h-7 md:w-7 text-purple-400" />} />
             <StatCard title="PnL Moyen/Trade" value={`${stats.averagePnl.toFixed(2)}${stats.averagePnl !== 0 ? pnlSuffix : ''}`} icon={<PresentationChartLineIcon className="h-6 w-6 md:h-7 md:w-7 text-purple-400" />} />
             <StatCard title="Gagnants (TP)" value={stats.winningTradesCount.toString()} />
             <StatCard title="Perdants (SL)" value={stats.losingTradesCount.toString()} />

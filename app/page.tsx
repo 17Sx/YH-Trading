@@ -8,3 +8,4 @@ export default async function Home() {
   else redirect('/auth');
   return null;
 }
+
