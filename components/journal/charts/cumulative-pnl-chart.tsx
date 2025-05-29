@@ -53,7 +53,7 @@ export function CumulativePnlChart({ trades }: CumulativePnlChartProps) {
       <div className="bg-gray-800/70 p-4 rounded-lg shadow-xl backdrop-blur-md border border-gray-700/50 min-h-[350px]"> 
         <h3 className="text-lg font-semibold text-purple-300 mb-4 text-center">Performance Cumulative (%)</h3>
         <ResponsiveContainer width="100%" height={300}>
-          <AreaChart data={chartData} margin={{ top: 5, right: 20, left: -20, bottom: 20 }}> 
+          <AreaChart data={chartData} margin={{ top: 5, right: 20, left: 1, bottom: 20 }}> 
             <defs>
               <linearGradient id="colorPnl" x1="0" y1="0" x2="0" y2="1">
                 <stop offset="5%" stopColor="#7e5bef" stopOpacity={0.8}/>
@@ -61,11 +61,11 @@ export function CumulativePnlChart({ trades }: CumulativePnlChartProps) {
               </linearGradient>
             </defs>
             <CartesianGrid strokeDasharray="3 3" strokeOpacity={0.2}/>
-            <XAxis dataKey="date" tick={{ fontSize: 10, fill: '#9ca3af' }} angle={-30} textAnchor="end" />
             <YAxis 
               tickFormatter={(value) => `${value.toFixed(2)}%`} 
-              tick={{ fontSize: 12, fill: '#9ca3af' }}
-              domain={['auto', 'auto']} 
+              tick={{ fontSize: 12, fill: '#9ca3af', width: 60 }}
+              domain={[0, 'auto']}
+              scale="linear"
             />
             <Tooltip
               contentStyle={{ backgroundColor: '#374151', border: '1px solid #4B5563', borderRadius: '0.375rem' }}

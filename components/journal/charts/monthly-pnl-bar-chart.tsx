@@ -41,7 +41,7 @@ export function MonthlyPnlBarChart({ data, currencySuffix = '%' }: MonthlyPnlBar
       <ResponsiveContainer width="100%" height={300}>
         <BarChart 
           data={data} 
-          margin={{ top: 5, right: 10, left: -25, bottom: 20 }}
+          margin={{ top: 5, right: 10, left: 1, bottom: 20 }}
         >
           <CartesianGrid strokeDasharray="3 3" strokeOpacity={0.2} />
           <XAxis 
@@ -53,7 +53,7 @@ export function MonthlyPnlBarChart({ data, currencySuffix = '%' }: MonthlyPnlBar
           />
           <YAxis 
             tickFormatter={(value) => `${value.toFixed(2)}${currencySuffix}`} 
-            tick={{ fontSize: 12, fill: '#9ca3af' }}
+            tick={{ fontSize: 12, fill: '#9ca3af', width: 60 }}
             allowDecimals={true}
           />
           <Tooltip content={<CustomTooltip currencySuffix={currencySuffix} />} cursor={{ fill: 'rgba(126, 91, 239, 0.1)' }} />
