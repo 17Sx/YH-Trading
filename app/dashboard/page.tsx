@@ -8,7 +8,7 @@ import { format, parseISO } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
-import { JournalSelector } from "@/components/journal/journal-selector";
+import { MultiJournalSelector } from "@/components/journal/multi-journal-selector";
 
 interface GlobalStats {
   totalTrades: number;
@@ -113,7 +113,7 @@ function calculateMonthlyPnl(trades: Trade[]): MonthlyPnlData[] {
 export default async function DashboardPage({
   searchParams,
 }: {
-  searchParams: { journalId?: string };
+  searchParams: { journalId?: string; journalIds?: string };
 }) {
   const primaryAccentRGB: [number, number, number] = [0.494, 0.357, 0.937];
   const supabase = createSupabaseServerClient();
@@ -152,19 +152,26 @@ export default async function DashboardPage({
     );
   }
 
+  let selectedJournalIds: string[] = [];
+  if (searchParams.journalIds) {
+    selectedJournalIds = searchParams.journalIds.split(',').filter(id => id.trim());
+  } else if (searchParams.journalId) {
+    selectedJournalIds = [searchParams.journalId];
+  } else {
+    selectedJournalIds = journals.map(j => j.id);
+  }
+
+  const selectedJournals = journals.filter(journal => selectedJournalIds.includes(journal.id));
+
   let trades: Trade[] = [];
   let tradesError: string | undefined;
 
-  if (searchParams.journalId) {
-    const result = await getTrades(searchParams.journalId);
-    trades = result.trades;
-    tradesError = result.error;
-  } else {
-    const allTradesPromises = journals.map(journal => getTrades(journal.id));
-    const allTradesResults = await Promise.all(allTradesPromises);
+  if (selectedJournalIds.length > 0) {
+    const tradesPromises = selectedJournalIds.map(journalId => getTrades(journalId));
+    const tradesResults = await Promise.all(tradesPromises);
     
-    trades = allTradesResults.flatMap(result => result.trades);
-    tradesError = allTradesResults.find(result => result.error)?.error;
+    trades = tradesResults.flatMap(result => result.trades);
+    tradesError = tradesResults.find(result => result.error)?.error;
   }
 
   if (tradesError) {
@@ -183,6 +190,20 @@ export default async function DashboardPage({
   const stats = calculateGlobalStats(trades);
   const monthlyPnl = calculateMonthlyPnl(trades);
   const pnlSuffix = '%';
+
+  const getSubtitleMessage = () => {
+    if (selectedJournalIds.length === 0) {
+      return <span className="text-yellow-300"> - Aucun journal sélectionné</span>;
+    }
+    if (selectedJournalIds.length === journals.length) {
+      return <span className="text-green-300"> - Tous les journaux</span>;
+    }
+    if (selectedJournalIds.length === 1) {
+      const journal = selectedJournals[0];
+      return <span className="text-purple-300"> - {journal?.name}</span>;
+    }
+    return <span className="text-purple-300"> - {selectedJournalIds.length} journaux sélectionnés</span>;
+  };
 
   return (
     <div className="relative min-h-screen selection:bg-purple-500 selection:text-white">
@@ -208,16 +229,18 @@ export default async function DashboardPage({
             <h1 className="text-3xl md:text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-500">
               Dashboard Global
             </h1>
-            <p className="mt-1 text-base md:text-lg text-gray-300">Vue d'ensemble de vos performances de trading.</p>
+            <p className="mt-1 text-base md:text-lg text-gray-300">
+              Vue d'ensemble de vos performances de trading
+              {getSubtitleMessage()}
+            </p>
 
             </div>
 
             <div className="flex items-center justify-end">
 
-            <JournalSelector 
+            <MultiJournalSelector 
               journals={journals} 
-              selectedJournalId={searchParams.journalId} 
-              showAllOption={true}
+              selectedJournalIds={selectedJournalIds}
             />
 
           </div>
