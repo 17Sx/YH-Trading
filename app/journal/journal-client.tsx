@@ -2,7 +2,7 @@
 import Dither from "@/components/ui/Dither/Dither";
 import { AddTradeModal } from "@/components/journal/add-trade-modal";
 import { EditTradeModal } from "@/components/journal/edit-trade-modal";
-import { TradesTable } from "@/components/journal/trades-table";
+import { TradesTableVirtualized } from "@/components/journal/trades-table-virtualized";
 import { TradeDetailsModal } from "@/components/journal/trade-details-modal";
 import { DeleteTradeConfirmationModal } from "@/components/journal/delete-trade-confirmation-modal";
 import { WinrateDistributionChart } from "@/components/journal/charts/winrate-distribution-chart";
@@ -26,6 +26,8 @@ import { Toaster, toast } from "sonner";
 import * as XLSX from "xlsx";
 import { Loading } from "@/components/ui/loading";
 import { PageLoading } from "@/components/ui/page-loading";
+import { useOptimizedTradeFilters } from "@/lib/hooks/useOptimizedTradeFilters";
+import { PerformanceIndicator, useRenderPerformance } from "@/components/ui/performance-indicator";
 
 interface JournalPageData {
   assets: Asset[];
@@ -719,70 +721,20 @@ export function JournalClient({ journal }: JournalClientProps) {
     { value: 9, label: "Octobre" }, { value: 10, label: "Novembre" }, { value: 11, label: "Décembre" },
   ];
 
-  const filteredTrades = useMemo(() => {
-    if (!journalData.trades) return [];
-    return journalData.trades.filter(trade => {
-      const tradeDate = new Date(trade.trade_date);
-      const isYearMatch = tradeDate.getFullYear() === selectedYear;
-      const isMonthYearMatch = isYearMatch && tradeDate.getMonth() === selectedMonth;
-      
-      if (viewMode === 'all') {
-        if (!searchTerm.trim()) return true;
-      } else {
-        if (viewMode === 'year' && !isYearMatch) return false;
-        if (viewMode === 'month' && !isMonthYearMatch) return false;
-      }
+  // Utilisation du hook optimisé pour les filtres et statistiques
+  const {
+    filteredTrades,
+    optimizedStats: monthlyStats,
+    isFiltering
+  } = useOptimizedTradeFilters(journalData.trades, {
+    searchTerm,
+    selectedYear,
+    selectedMonth,
+    viewMode
+  });
 
-      if (!searchTerm.trim()) return true; 
-
-      const lowerSearchTerm = searchTerm.toLowerCase();
-      const searchableFields = [
-        trade.asset_name,
-        trade.session_name,
-        trade.setup_name,
-        trade.notes,
-        trade.risk_input, 
-      ];
-
-      return searchableFields.some(field => 
-        field && String(field).toLowerCase().includes(lowerSearchTerm)
-      );
-    });
-  }, [journalData.trades, selectedYear, selectedMonth, searchTerm, viewMode]);
-
-  const monthlyStats = useMemo(() => {
-    if (filteredTrades.length === 0) {
-      return {
-        performancePercent: "N/A",
-        winRate: "N/A",
-        numTrades: 0,
-        numTP: 0,
-        numSL: 0,
-        numBE: 0,
-      };
-    }
-
-    const numTrades = filteredTrades.length;
-    const numTP = filteredTrades.filter(t => t.profit_loss_amount > 0).length;
-    const numSL = filteredTrades.filter(t => t.profit_loss_amount < 0).length;
-    const numBE = filteredTrades.filter(t => t.profit_loss_amount === 0).length;
-    const winRate = numTrades > 0 && (numTP + numSL > 0) ? ((numTP / (numTP + numSL)) * 100) : 0;
-    
-    const totalPercentagePerformance = filteredTrades.reduce((acc, trade) => acc + trade.profit_loss_amount, 0);
-    
-    const performanceDisplay = numTrades > 0 
-      ? `${totalPercentagePerformance.toFixed(2)}%` 
-      : "N/A";
-
-    return {
-      performanceDisplay,
-      winRate: numTP + numSL > 0 ? `${winRate.toFixed(2)}%` : "N/A",
-      numTrades,
-      numTP,
-      numSL,
-      numBE,
-    };
-  }, [filteredTrades]);
+  // Mesure de performance
+  const performanceMetrics = useRenderPerformance(filteredTrades.length, true);
 
   function exportToExcel(trades: Trade[], filename: string) {
     if (!trades || trades.length === 0) {
@@ -1115,13 +1067,20 @@ export function JournalClient({ journal }: JournalClientProps) {
                 </div>
                 {/* Champ de recherche */}
                 <div className="flex-grow sm:flex-grow-0 sm:ml-auto">
-                  <input 
-                    type="search"
-                    placeholder="Rechercher..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="w-full sm:w-auto bg-gray-700 border border-gray-600 text-gray-200 text-sm rounded-md focus:ring-purple-500 focus:border-purple-500 p-2.5 placeholder-gray-400"
-                  />
+                  <div className="relative">
+                    <input 
+                      type="search"
+                      placeholder="Rechercher..."
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      className="w-full sm:w-auto bg-gray-700 border border-gray-600 text-gray-200 text-sm rounded-md focus:ring-purple-500 focus:border-purple-500 p-2.5 placeholder-gray-400"
+                    />
+                    {isFiltering && (
+                      <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                        <Loading size="sm" variant="default" />
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
 
@@ -1225,7 +1184,7 @@ export function JournalClient({ journal }: JournalClientProps) {
                   </div>
                 )}
 
-                <TradesTable 
+                <TradesTableVirtualized 
                   trades={filteredTrades} 
                   onRowClick={handleRowClick} 
                   onEdit={handleOpenEditModal}
@@ -1291,6 +1250,9 @@ export function JournalClient({ journal }: JournalClientProps) {
           }
           isPending={isDeletingMultiple}
         />
+
+        {/* Indicateur de performance */}
+        <PerformanceIndicator metrics={performanceMetrics} />
       </div>
     </>
   );
