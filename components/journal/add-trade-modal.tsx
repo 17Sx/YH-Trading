@@ -13,7 +13,8 @@ import { X, PlusSquare, Calendar, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { useEffect, useState, useCallback, memo } from "react";
 import { ManageItemsModal } from "./manage-items-modal"; 
-import { useJournalData } from '@/lib/hooks/useJournalData';
+import { useJournalDataOptimized } from '@/lib/hooks/useJournalDataOptimized';
+import { DebouncedInput, DebouncedTextarea, OptimizedSelect } from '@/components/optimized/form-optimizations';
 import DatePicker from "react-datepicker";
 import { fr } from "date-fns/locale";
 import "react-datepicker/dist/react-datepicker.css";
@@ -44,6 +45,7 @@ export const AddTradeModal = memo(function AddTradeModal({
     formState: { errors, isSubmitting },
     reset,
     setValue,
+    getValues,
   } = useForm<AddTradeInput>({
     resolver: zodResolver(AddTradeSchema),
     defaultValues: {
@@ -68,7 +70,7 @@ export const AddTradeModal = memo(function AddTradeModal({
     error,
     refreshAll,
     optimisticUpdateTrades
-  } = useJournalData(journalId, true);
+  } = useJournalDataOptimized(journalId, isOpen);
 
   useEffect(() => {
     if (isOpen) {
@@ -258,17 +260,13 @@ export const AddTradeModal = memo(function AddTradeModal({
                   name="asset_id"
                   control={control}
                   render={({ field }) => (
-                    <select 
-                      {...field} 
-                      id="asset_id" 
+                    <OptimizedSelect
+                      options={assets.map(asset => ({ value: asset.id, label: asset.name }))}
+                      value={field.value}
+                      onChange={field.onChange}
+                      placeholder="Sélectionner..."
                       className={`w-full p-2.5 bg-gray-700 border ${errors.asset_id ? 'border-red-500' : 'border-gray-600'} rounded-md focus:ring-purple-500 focus:border-purple-500`}
-                      value={field.value || ''}
-                    >
-                      <option value="">Sélectionner...</option>
-                      {Array.isArray(assets) && assets.map(asset => (
-                        <option key={asset.id} value={asset.id}>{asset.name}</option>
-                      ))}
-                    </select>
+                    />
                   )}
                 />
                 {errors.asset_id && <p className="mt-1 text-sm text-red-400">{errors.asset_id.message}</p>}
@@ -286,17 +284,13 @@ export const AddTradeModal = memo(function AddTradeModal({
                   name="session_id"
                   control={control}
                   render={({ field }) => (
-                    <select 
-                      {...field} 
-                      id="session_id" 
+                    <OptimizedSelect
+                      options={sessions.map(session => ({ value: session.id, label: session.name }))}
+                      value={field.value}
+                      onChange={field.onChange}
+                      placeholder="Sélectionner..."
                       className={`w-full p-2.5 bg-gray-700 border ${errors.session_id ? 'border-red-500' : 'border-gray-600'} rounded-md focus:ring-purple-500 focus:border-purple-500`}
-                      value={field.value || ''}
-                    >
-                      <option value="">Sélectionner...</option>
-                      {Array.isArray(sessions) && sessions.map(session => (
-                        <option key={session.id} value={session.id}>{session.name}</option>
-                      ))}
-                    </select>
+                    />
                   )}
                 />
                 {errors.session_id && <p className="mt-1 text-sm text-red-400">{errors.session_id.message}</p>}
@@ -314,17 +308,13 @@ export const AddTradeModal = memo(function AddTradeModal({
                   name="setup_id"
                   control={control}
                   render={({ field }) => (
-                    <select 
-                      {...field} 
-                      id="setup_id" 
+                    <OptimizedSelect
+                      options={setups.map(setup => ({ value: setup.id, label: setup.name }))}
+                      value={field.value}
+                      onChange={field.onChange}
+                      placeholder="Sélectionner..."
                       className={`w-full p-2.5 bg-gray-700 border ${errors.setup_id ? 'border-red-500' : 'border-gray-600'} rounded-md focus:ring-purple-500 focus:border-purple-500`}
-                      value={field.value || ''}
-                    >
-                      <option value="">Sélectionner...</option>
-                      {Array.isArray(setups) && setups.map(setup => (
-                        <option key={setup.id} value={setup.id}>{setup.name}</option>
-                      ))}
-                    </select>
+                    />
                   )}
                 />
                 {errors.setup_id && <p className="mt-1 text-sm text-red-400">{errors.setup_id.message}</p>}
@@ -335,18 +325,36 @@ export const AddTradeModal = memo(function AddTradeModal({
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
               <div>
                 <label htmlFor="risk_input" className="block text-sm font-medium text-gray-300 mb-1">Risk (RR ou %)</label>
-                <input type="text" {...register("risk_input")} id="risk_input" placeholder="Ex: 2R, -1R, 0.5%" className={`w-full p-2.5 bg-gray-700 border ${errors.risk_input ? 'border-red-500' : 'border-gray-600'} rounded-md focus:ring-purple-500 focus:border-purple-500`} />
+                <Controller
+                  name="risk_input"
+                  control={control}
+                  render={({ field }) => (
+                    <DebouncedInput
+                      value={field.value}
+                      onChange={field.onChange}
+                      placeholder="Ex: 2R, -1R, 0.5%"
+                      delay={500}
+                      className={`w-full p-2.5 bg-gray-700 border ${errors.risk_input ? 'border-red-500' : 'border-gray-600'} rounded-md focus:ring-purple-500 focus:border-purple-500`}
+                    />
+                  )}
+                />
                 {errors.risk_input && <p className="mt-1 text-sm text-red-400">{errors.risk_input.message}</p>}
               </div>
               <div>
                 <label htmlFor="profit_loss_amount" className="block text-sm font-medium text-gray-300 mb-1">Résultat (%)</label>
-                <input
-                  type="number"
-                  step="0.01"
-                  {...register("profit_loss_amount")}
-                  id="profit_loss_amount"
-                  placeholder="Ex: 1.5 (pour 1.5%)"
-                  className={`w-full p-2.5 bg-gray-700 border ${errors.profit_loss_amount ? 'border-red-500' : 'border-gray-600'} rounded-md focus:ring-purple-500 focus:border-purple-500`}
+                <Controller
+                  name="profit_loss_amount"
+                  control={control}
+                  render={({ field }) => (
+                    <DebouncedInput
+                      type="number"
+                      value={field.value?.toString() || ''}
+                      onChange={(value) => field.onChange(parseFloat(value) || 0)}
+                      placeholder="Ex: 1.5 (pour 1.5%)"
+                      delay={500}
+                      className={`w-full p-2.5 bg-gray-700 border ${errors.profit_loss_amount ? 'border-red-500' : 'border-gray-600'} rounded-md focus:ring-purple-500 focus:border-purple-500`}
+                    />
+                  )}
                 />
                 {errors.profit_loss_amount && <p className="mt-1 text-sm text-red-400">{errors.profit_loss_amount.message}</p>}
               </div>
@@ -355,14 +363,39 @@ export const AddTradeModal = memo(function AddTradeModal({
             {/* TradingView Link */}
             <div>
               <label htmlFor="tradingview_link" className="block text-sm font-medium text-gray-300 mb-1">Lien TradingView (Optionnel)</label>
-              <input type="url" {...register("tradingview_link")} id="tradingview_link" placeholder="https://www.tradingview.com/chart/..." className={`w-full p-2.5 bg-gray-700 border ${errors.tradingview_link ? 'border-red-500' : 'border-gray-600'} rounded-md focus:ring-purple-500 focus:border-purple-500`} />
+              <Controller
+                name="tradingview_link"
+                control={control}
+                render={({ field }) => (
+                  <DebouncedInput
+                    value={field.value || ''}
+                    onChange={field.onChange}
+                    placeholder="https://www.tradingview.com/chart/..."
+                    delay={800}
+                    className={`w-full p-2.5 bg-gray-700 border ${errors.tradingview_link ? 'border-red-500' : 'border-gray-600'} rounded-md focus:ring-purple-500 focus:border-purple-500`}
+                  />
+                )}
+              />
               {errors.tradingview_link && <p className="mt-1 text-sm text-red-400">{errors.tradingview_link.message}</p>}
             </div>
 
             {/* Notes */}
             <div>
               <label htmlFor="notes" className="block text-sm font-medium text-gray-300 mb-1">Notes (Optionnel)</label>
-              <textarea {...register("notes")} id="notes" rows={3} placeholder="Contexte, émotions, leçons apprises..." className={`w-full p-2.5 bg-gray-700 border ${errors.notes ? 'border-red-500' : 'border-gray-600'} rounded-md focus:ring-purple-500 focus:border-purple-500`}></textarea>
+              <Controller
+                name="notes"
+                control={control}
+                render={({ field }) => (
+                  <DebouncedTextarea
+                    value={field.value || ''}
+                    onChange={field.onChange}
+                    placeholder="Contexte, émotions, leçons apprises..."
+                    delay={1000}
+                    maxRows={8}
+                    className={`w-full p-2.5 bg-gray-700 border ${errors.notes ? 'border-red-500' : 'border-gray-600'} rounded-md focus:ring-purple-500 focus:border-purple-500`}
+                  />
+                )}
+              />
               {errors.notes && <p className="mt-1 text-sm text-red-400">{errors.notes.message}</p>}
             </div>
 

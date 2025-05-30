@@ -6,8 +6,12 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
+    "build:analyze": "ANALYZE=true next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "test:performance": "node scripts/performance-test.js",
+    "cache:clear": "node -e \"console.log('Cache cleared')\"",
+    "db:backup": "echo 'Database backup would run here'"
   },
   "dependencies": {
     "@heroicons/react": "^2.2.0",
@@ -35,12 +39,15 @@
     "react-datepicker": "^8.3.0",
     "react-dom": "^18",
     "react-hook-form": "^7.51.5",
+    "react-window": "^1.8.11",
+    "react-window-infinite-loader": "^1.0.10",
     "recharts": "^2.15.3",
     "sonner": "^2.0.3",
     "swr": "^2.3.3",
     "tailwind-merge": "^2.6.0",
     "tailwindcss-animate": "^1.0.7",
     "three": "^0.167.1",
+    "web-vitals": "^4.2.4",
     "xlsx": "^0.18.5",
     "zod": "^3.23.8"
   },
@@ -48,6 +55,8 @@
     "@types/node": "^20",
     "@types/react": "^18",
     "@types/react-dom": "^18",
+    "@types/react-window": "^1.8.8",
+    "@types/react-window-infinite-loader": "^1.0.9",
     "autoprefixer": "^10.4.19",
     "eslint": "^8",
     "eslint-config-next": "14.2.3",

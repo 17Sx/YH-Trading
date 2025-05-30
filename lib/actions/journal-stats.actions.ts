@@ -27,7 +27,7 @@ export interface Trade {
   created_at: string;
 }
 
-export async function getJournals(): Promise<{ journals: (Journal & {
+export async function getJournalsOptimized(): Promise<{ journals: (Journal & {
   trades_count: number;
   win_rate: number;
   profit_loss: number;

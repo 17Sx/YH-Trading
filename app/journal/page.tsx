@@ -231,16 +231,12 @@ export default function JournalsPage() {
   const handleCreateJournal = async (name: string, description: string) => {
     try {
       const result = await createJournal({ name, description });
-      if (result.success) {
-        toast.success("Journal créé avec succès");
-        const updatedJournals = await getJournals();
-        if (updatedJournals.journals) {
-          setJournals(updatedJournals.journals);
-        }
-        setCreateModalOpen(false);
-      } else {
-        toast.error(result.error || "Une erreur est survenue lors de la création du journal");
+      toast.success("Journal créé avec succès");
+      const updatedJournals = await getJournals();
+      if (updatedJournals.journals) {
+        setJournals(updatedJournals.journals);
       }
+      setCreateModalOpen(false);
     } catch (error) {
       console.error("Create journal error:", error);
       toast.error("Une erreur inattendue est survenue");

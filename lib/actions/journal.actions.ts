@@ -5,6 +5,7 @@ import { createSupabaseActionClient } from "@/lib/supabase/actions";
 import { AddTradeSchema, type AddTradeInput } from "@/schemas/journal.schema";
 import { revalidatePath } from "next/cache";
 import { auth } from "@/lib/auth";
+import { invalidateCache } from "@/lib/utils/enhanced-api-cache";
 
 export interface Asset {
   id: string;
@@ -136,6 +137,10 @@ export async function addTrade(
     return { error: `Erreur Supabase: ${insertError.message}` };
   }
 
+  invalidateCache('trades');
+  invalidateCache('stats');
+  invalidateCache('journals');
+
   revalidatePath("/journal");
   return { success: true };
 }
@@ -237,6 +242,9 @@ async function addItem(
     return { error: insertError.message };
   }
 
+  
+  invalidateCache('reference-data');
+
   revalidatePath("/journal"); 
   return { data: newItem };
 }
@@ -278,6 +286,8 @@ async function deleteItem(
     return { error: `Erreur Supabase: ${deleteError.message}` };
   }
 
+  invalidateCache('reference-data');
+
   revalidatePath("/journal");
   return { success: true };
 }
@@ -316,6 +326,10 @@ export async function deleteTrade(id: string, journalId: string): Promise<{ succ
   if (error) {
     return { error: error.message };
   }
+
+  invalidateCache('trades');
+  invalidateCache('stats');
+  invalidateCache('journals');
 
   revalidatePath("/journal");
   return { success: true };
@@ -375,6 +389,10 @@ export async function updateTrade(
     return { error: `Erreur Supabase: ${updateError.message}` };
   }
 
+  invalidateCache('trades');
+  invalidateCache('stats');
+  invalidateCache('journals');
+
   revalidatePath("/journal");
   return { success: true };
 }
@@ -412,64 +430,51 @@ export async function getJournals(): Promise<{ journals: (Journal & {
       return { journals: [], error: "Non authentifié" };
     }
 
-    const { data: journals, error: journalsError } = await supabase
+    const { data, error } = await supabase
       .from('journals')
-      .select('*')
+      .select(`
+        *,
+        trades:trades(count),
+        trades_stats:trades(profit_loss_amount, trade_date)
+      `)
       .eq('user_id', user.id)
       .order('created_at', { ascending: false });
 
-    if (journalsError) {
-      console.error('Erreur lors de la récupération des journaux:', journalsError);
-      return { journals: [], error: journalsError.message };
+    if (error) {
+      console.error('Erreur lors de la récupération des journaux:', error);
+      return { journals: [], error: error.message };
     }
 
-    const journalsWithStats = await Promise.all(
-      (journals || []).map(async (journal: Journal) => {
-        const { data: trades, error: tradesError } = await supabase
-          .from('trades')
-          .select('*')
-          .eq('journal_id', journal.id);
+    const journalsWithStats = (data || []).map((journal: any) => {
+      const trades = journal.trades_stats || [];
+      const totalTrades = journal.trades?.[0]?.count || 0;
+      
+      const winningTrades = trades.filter((t: any) => t.profit_loss_amount > 0);
+      const losingTrades = trades.filter((t: any) => t.profit_loss_amount < 0);
+      const winRate = (winningTrades.length + losingTrades.length) > 0 
+        ? Math.round((winningTrades.length / (winningTrades.length + losingTrades.length)) * 100) 
+        : 0;
+      
+      const performance = trades.reduce((sum: number, t: any) => sum + t.profit_loss_amount, 0);
+      const lastTradeDate = trades.length > 0 
+        ? new Date(Math.max(...trades.map((t: any) => new Date(t.trade_date).getTime())))
+        : new Date(journal.created_at);
 
-        if (tradesError) {
-          console.error('Erreur lors de la récupération des trades:', tradesError);
-          return {
-            ...journal,
-            trades_count: 0,
-            win_rate: 0,
-            performance: 0,
-            last_trade_date: new Date(journal.created_at),
-          };
-        }
-
-        const tradesList = (trades || []) as Trade[];
-        const totalTrades = tradesList.length;
-        const winningTrades = tradesList.filter((trade: Trade) => trade.profit_loss_amount > 0).length;
-        const losingTrades = tradesList.filter((trade: Trade) => trade.profit_loss_amount < 0).length;
-        const breakevenTrades = tradesList.filter((trade: Trade) => trade.profit_loss_amount === 0).length;
-        const nonBreakevenTradesCount = winningTrades + losingTrades;
-        const winRate = nonBreakevenTradesCount > 0 ? Math.round((winningTrades / nonBreakevenTradesCount) * 100) : 0;
-        const lastTradeDate = tradesList.length > 0 
-          ? new Date(tradesList.reduce((latest: Trade, trade: Trade) => 
-              new Date(trade.trade_date) > new Date(latest.trade_date) ? trade : latest
-            ).trade_date)
-          : new Date(journal.created_at);
-
-        const totalPerformance = tradesList.reduce((sum: number, trade: Trade) => sum + trade.profit_loss_amount, 0);
-
-        return {
-          ...journal,
-          trades_count: totalTrades,
-          win_rate: winRate,
-          performance: totalPerformance,
-          last_trade_date: lastTradeDate,
-        };
-      })
-    );
+      return {
+        ...journal,
+        trades_count: totalTrades,
+        win_rate: winRate,
+        performance,
+        last_trade_date: lastTradeDate,
+        trades: undefined,
+        trades_stats: undefined,
+      };
+    });
 
     return { journals: journalsWithStats };
   } catch (error) {
     console.error('Exception lors de la récupération des journaux:', error);
-    return { journals: [], error: error instanceof Error ? error.message : 'Une erreur inconnue est survenue' };
+    return { journals: [], error: error instanceof Error ? error.message : 'Erreur inconnue' };
   }
 }
 
