@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo, useEffect } from 'react';
 import { useForm, SubmitHandler } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { AddListItemSchema, type AddListItemInput } from '@/schemas/journal.schema';
@@ -21,8 +21,8 @@ interface ManageItemsModalProps {
   onClose: () => void;
   itemTypeLabel: string;
   items: any[];
-  addItemAction: (name: string, journalId: string) => Promise<any>;
-  deleteItemAction: (id: string, journalId: string) => Promise<any>;
+  addItemAction: (name: string) => Promise<any>;
+  deleteItemAction: (id: string) => Promise<any>;
   onListChanged: (itemType: ItemManagementType, newItemId?: string) => Promise<void>;
   journalId: string;
 }
@@ -37,8 +37,22 @@ export function ManageItemsModal({
   onListChanged,
   journalId,
 }: ManageItemsModalProps) {
+  console.log(`[DEBUG] ManageItemsModal - ${itemTypeLabel}:`, { isOpen, items, itemsLength: items?.length });
+  
   const [isSubmittingNew, setIsSubmittingNew] = useState(false);
-  const [itemToDelete, setItemToDelete] = useState<string | null>(null); 
+  const [itemToDelete, setItemToDelete] = useState<string | null>(null);
+  const [localItems, setLocalItems] = useState<any[]>([]);
+
+  useMemo(() => {
+    if (isOpen) {
+      console.log(`[DEBUG] Updating localItems for ${itemTypeLabel}:`, items);
+      console.log(`[DEBUG] Items is array:`, Array.isArray(items));
+      console.log(`[DEBUG] Items content:`, items);
+      setLocalItems(Array.isArray(items) ? [...items] : []);
+    }
+  }, [items, isOpen, itemTypeLabel]);
+
+  console.log(`[DEBUG] Current localItems for ${itemTypeLabel}:`, localItems);
 
   const {
     register,
@@ -49,14 +63,15 @@ export function ManageItemsModal({
     resolver: zodResolver(AddListItemSchema),
   });
 
-  const safeItems = Array.isArray(items) ? items : [];
-
   const handleAddNewItem: SubmitHandler<AddListItemInput> = async (data) => {
     setIsSubmittingNew(true);
     try {
-      const result = await addItemAction(data.name, journalId);
+      const result = await addItemAction(data.name);
       if (result.data) {
         toast.success(`${itemTypeLabel} "${result.data.name}" ajouté avec succès !`);
+        
+        setLocalItems(prev => [...prev, result.data]);
+        
         reset();
         await onListChanged({ type: itemTypeLabel.toLowerCase() as ItemType, id: result.data.id }); 
       } else {
@@ -73,9 +88,13 @@ export function ManageItemsModal({
   const handleDeleteItem = async (itemId: string, itemName: string) => {
     setItemToDelete(itemId);
     try {
-      const result = await deleteItemAction(itemId, journalId);
+      const result = await deleteItemAction(itemId);
       if (result.success) {
         toast.success(`${itemTypeLabel} "${itemName}" supprimé avec succès !`);
+        
+          
+        setLocalItems(prev => prev.filter(item => item.id !== itemId));
+        
         await onListChanged({ type: itemTypeLabel.toLowerCase() as ItemType }); 
       } else {
         toast.error(result.error || `Erreur lors de la suppression de ${itemTypeLabel.toLowerCase()}.`);
@@ -85,6 +104,51 @@ export function ManageItemsModal({
       console.error(error);
     } finally {
       setItemToDelete(null);
+    }
+  };
+
+  const handleQuickRestore = async () => {
+    setIsSubmittingNew(true);
+    try {
+      let itemsToCreate: string[] = [];
+      
+      if (itemTypeLabel === "Actif") {
+        itemsToCreate = ["EURUSD", "GBPUSD", "USDJPY", "AUDUSD", "USDCAD", "USDCHF", "NZDUSD"];
+      } else if (itemTypeLabel === "Session") {
+        itemsToCreate = ["LONDON", "NEW YORK", "ASIAN", "OVERLAP LDN/NY"];
+      } else if (itemTypeLabel === "Setup") {
+        itemsToCreate = ["BREAKOUT", "PULLBACK", "REVERSAL", "TREND CONTINUATION", "SUPPORT/RESISTANCE"];
+      }
+
+      console.log(`[DEBUG] Quick restore for ${itemTypeLabel}:`, itemsToCreate);
+
+      const results = [];
+      for (const itemName of itemsToCreate) {
+        try {
+          const result = await addItemAction(itemName);
+          if (result.data) {
+            results.push(result.data);
+            setLocalItems(prev => [...prev, result.data]);
+          } else {
+            console.warn(`Failed to create ${itemName}:`, result.error);
+          }
+        } catch (error) {
+          console.error(`Error creating ${itemName}:`, error);
+        }
+      }
+
+      if (results.length > 0) {
+        toast.success(`${results.length} ${itemTypeLabel.toLowerCase()}(s) créé(s) avec succès !`);
+        await onListChanged({ type: itemTypeLabel.toLowerCase() as ItemType });
+      } else {
+        toast.error("Aucun élément n'a pu être créé.");
+      }
+      
+    } catch (error) {
+      toast.error(`Une erreur inattendue est survenue lors de la récupération rapide.`);
+      console.error(error);
+    } finally {
+      setIsSubmittingNew(false);
     }
   };
 
@@ -129,14 +193,31 @@ export function ManageItemsModal({
             </button>
           </div>
           {formErrors.name && <p className="mt-1 text-sm text-red-400">{formErrors.name.message}</p>}
+
+          {/* Boutons de récupération rapide */}
+          {localItems.length === 0 && (
+            <div className="mt-4 p-3 bg-blue-900/30 border border-blue-700/50 rounded-md">
+              <p className="text-sm text-blue-300 mb-2">Récupération rapide :</p>
+              <button
+                type="button"
+                onClick={() => handleQuickRestore()}
+                disabled={isSubmittingNew}
+                className="px-3 py-1 text-xs bg-blue-600 hover:bg-blue-700 text-white rounded transition-colors"
+              >
+                {itemTypeLabel === "Actif" && "Ajouter EURUSD, GBPUSD, USDJPY"}
+                {itemTypeLabel === "Session" && "Ajouter LONDON, NEW YORK, ASIAN"}
+                {itemTypeLabel === "Setup" && "Ajouter BREAKOUT, PULLBACK, REVERSAL"}
+              </button>
+            </div>
+          )}
         </form>
 
         {/* Liste des items existants */}
         <div className="flex-1 overflow-y-auto">
-          {safeItems.length === 0 ? (
+          {localItems.length === 0 ? (
             <p className="text-gray-400 text-center py-4">Aucun {itemTypeLabel.toLowerCase()} existant.</p>
           ) : (
-            safeItems.map((item) => (
+            localItems.map((item) => (
               <div key={item.id} className="flex items-center justify-between bg-gray-700/50 p-3 rounded-md hover:bg-gray-700 transition-colors mb-2">
                 <span className="text-gray-200">{item.name}</span>
                 <button

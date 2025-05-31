@@ -80,6 +80,17 @@ export const EditTradeModal = memo(function EditTradeModal({
     optimisticUpdateTrades 
   } = useJournalData(journalId, isOpen);
 
+  console.log(`[DEBUG] EditTradeModal - Data from hook:`, { 
+    assets, 
+    sessions, 
+    setups, 
+    assetsLength: assets?.length, 
+    sessionsLength: sessions?.length, 
+    setupsLength: setups?.length,
+    isLoading,
+    error 
+  });
+
   const [durationUnit, setDurationUnit] = useState<'minutes' | 'heures'>('minutes');
   const [itemManagementTarget, setItemManagementTarget] = useState<ItemManagementType | null>(null);
 
@@ -138,17 +149,31 @@ export const EditTradeModal = memo(function EditTradeModal({
   }, []);
 
   const handleListChangedInManageModal = useCallback(async (itemType: ItemManagementType, newItemId?: string) => {
-    await refreshAll();
+    console.log(`[DEBUG] handleListChangedInManageModal called for ${itemType.type}`, { newItemId });
     
-    if (itemType.type === "asset" && newItemId) {
-      setValue("asset_id", newItemId, { shouldValidate: true });
-    } else if (itemType.type === "session" && newItemId) {
-      setValue("session_id", newItemId, { shouldValidate: true });
-    } else if (itemType.type === "setup" && newItemId) {
-      setValue("setup_id", newItemId, { shouldValidate: true });
+    try {
+      await refreshAll();
+      console.log('[DEBUG] refreshAll completed');
+      
+      if (itemType.type === "asset" && newItemId) {
+        setValue("asset_id", newItemId, { shouldValidate: true });
+      } else if (itemType.type === "session" && newItemId) {
+        setValue("session_id", newItemId, { shouldValidate: true });
+      } else if (itemType.type === "setup" && newItemId) {
+        setValue("setup_id", newItemId, { shouldValidate: true });
+      }
+      
+      await onDataNeedsRefresh();
+      console.log('[DEBUG] onDataNeedsRefresh completed');
+      
+      setTimeout(async () => {
+        await refreshAll();
+        console.log('[DEBUG] Delayed refreshAll completed');
+      }, 100);
+      
+    } catch (error) {
+      console.error('[DEBUG] Error in handleListChangedInManageModal:', error);
     }
-    
-    await onDataNeedsRefresh();
   }, [refreshAll, setValue, onDataNeedsRefresh]);
 
   const handleClose = useCallback(() => {
@@ -309,16 +334,19 @@ export const EditTradeModal = memo(function EditTradeModal({
     currentItems = Array.isArray(assets) ? assets : [];
     currentAddItemAction = addAsset;
     currentDeleteItemAction = deleteAsset;
+    console.log(`[DEBUG] EditTradeModal - Passing assets to ManageItemsModal:`, assets);
   } else if (itemManagementTarget?.type === "session") {
     currentItemTypeLabel = "Session";
     currentItems = Array.isArray(sessions) ? sessions : [];
     currentAddItemAction = addSession;
     currentDeleteItemAction = deleteSession;
+    console.log(`[DEBUG] EditTradeModal - Passing sessions to ManageItemsModal:`, sessions);
   } else if (itemManagementTarget?.type === "setup") {
     currentItemTypeLabel = "Setup";
     currentItems = Array.isArray(setups) ? setups : [];
     currentAddItemAction = addSetup;
     currentDeleteItemAction = deleteSetup;
+    console.log(`[DEBUG] EditTradeModal - Passing setups to ManageItemsModal:`, setups);
   }
 
   return (

@@ -266,29 +266,94 @@ async function deleteItem(
   itemId: string,
   tableName: "assets" | "sessions" | "setups"
 ): Promise<{ success?: boolean; error?: string }> {
+  console.log(`[DEBUG] Attempting to delete ${tableName} with ID: ${itemId}`);
+  
   const supabase = createSupabaseActionClient();
   const { data: { user } } = await supabase.auth.getUser();
 
   if (!user) {
+    console.log('[DEBUG] User not authenticated');
     return { error: "Utilisateur non authentifié." };
   }
 
   if (!itemId) {
+    console.log('[DEBUG] Item ID is missing');
     return { error: "L'ID de l'élément est requis." };
   }
 
-  const { error: deleteError } = await supabase
+  console.log(`[DEBUG] Checking if ${tableName} with ID ${itemId} exists for user ${user.id}`);
+  const { data: existingItem, error: checkError } = await supabase
     .from(tableName)
-    .delete()
-    .match({ id: itemId, user_id: user.id }); 
+    .select("id, name, user_id")
+    .eq("id", itemId)
+    .single();
+
+  if (checkError) {
+    console.log(`[DEBUG] Error checking item existence:`, checkError);
+    if (checkError.code === 'PGRST116') {
+      console.log(`[DEBUG] Item ${itemId} does not exist in ${tableName}`);
+      return { error: "Élément introuvable dans la base de données." };
+    }
+    return { error: `Erreur lors de la vérification: ${checkError.message}` };
+  }
+
+  console.log(`[DEBUG] Found item:`, existingItem);
+
+  if (existingItem.user_id !== user.id) {
+    console.log(`[DEBUG] Item belongs to user ${existingItem.user_id}, but current user is ${user.id}`);
+    return { error: "Vous n'êtes pas autorisé à supprimer cet élément." };
+  }
+
+  const columnName = tableName === "assets" ? "asset_id" : 
+                    tableName === "sessions" ? "session_id" : "setup_id";
+  
+  console.log(`[DEBUG] Checking if ${tableName} is used in ANY trades for user ${user.id}`);
+  const { data: usedInTrades, error: tradeCheckError } = await supabase
+    .from("trades")
+    .select("id, journal_id")
+    .eq(columnName, itemId)
+    .eq("user_id", user.id)
+    .limit(5); 
+
+  if (tradeCheckError) {
+    console.error(`[DEBUG] Error checking trade usage:`, tradeCheckError);
+  } else if (usedInTrades && usedInTrades.length > 0) {
+    console.log(`[DEBUG] Item is used in ${usedInTrades.length} trade(s) across journals:`, usedInTrades.map(t => t.journal_id));
+    return { error: `Impossible de supprimer: cet élément est utilisé dans ${usedInTrades.length} trade(s). Supprimez d'abord tous les trades qui l'utilisent dans tous vos journaux.` };
+  }
+
+  console.log(`[DEBUG] Deleting from ${tableName} where id=${itemId} AND user_id=${user.id}`);
+
+  const { error: deleteError, count } = await supabase
+    .from(tableName)
+    .delete({ count: 'exact' })
+    .match({ id: itemId, user_id: user.id });
+    
+  console.log(`[DEBUG] Delete operation result:`, { 
+    error: deleteError, 
+    affectedRows: count,
+    tableName,
+    itemId 
+  });
+    
   if (deleteError) {
     console.error(`Erreur de suppression Supabase (${tableName}, ID: ${itemId}):`, deleteError);
     return { error: `Erreur Supabase: ${deleteError.message}` };
   }
 
+  if (count === 0) {
+    console.log(`[DEBUG] No rows were deleted - this should not happen after existence check`);
+    return { error: "Erreur inattendue: la suppression a échoué." };
+  }
+
+  console.log(`[DEBUG] Successfully deleted ${count} row(s) from ${tableName}`);
+  
   invalidateCache('reference-data');
+  console.log('[DEBUG] Cache invalidated');
 
   revalidatePath("/journal");
+  console.log('[DEBUG] Path revalidated');
+  
   return { success: true };
 }
 

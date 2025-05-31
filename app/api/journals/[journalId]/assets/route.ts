@@ -1,28 +1,31 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { getAssets } from '@/lib/actions/journal.actions';
 import { getCachedResponse, setCachedResponse, CACHE_CONFIGS } from '@/lib/utils/enhanced-api-cache';
 
 export async function GET(
-  request: Request,
+  request: NextRequest,
   { params }: { params: { journalId: string } }
 ) {
+  console.log(`[DEBUG] Assets API called for journal ${params.journalId}`);
+  
   try {
     const req = request as any;
     
     const cachedResponse = getCachedResponse(req, CACHE_CONFIGS.REFERENCE_DATA);
     if (cachedResponse) {
+      console.log(`[DEBUG] Assets API - returning cached response`);
       return cachedResponse;
     }
 
-    const assets = await getAssets();
-    const response = { assets };
-
-    return setCachedResponse(req, response, CACHE_CONFIGS.REFERENCE_DATA);
+    console.log(`[DEBUG] Assets API - fetching fresh data`);
+    const result = await getAssets();
+    console.log(`[DEBUG] Assets API - got result:`, result);
     
+    return setCachedResponse(req, result, CACHE_CONFIGS.REFERENCE_DATA);
   } catch (error) {
-    console.error('Erreur lors de la récupération des assets:', error);
+    console.error('Error in assets API:', error);
     return NextResponse.json(
-      { error: 'Erreur lors de la récupération des assets' },
+      { error: 'Failed to fetch assets' },
       { status: 500 }
     );
   }

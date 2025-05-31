@@ -197,9 +197,9 @@ export function useJournalData(journalId: string, isEnabled: boolean = true): Jo
   }, [journalId]);
 
   return {
-    assets: assetsData?.assets?.assets || [],
-    sessions: sessionsData?.sessions?.sessions || [],
-    setups: setupsData?.setups?.setups || [],
+    assets: assetsData?.assets || [],
+    sessions: sessionsData?.sessions || [],
+    setups: setupsData?.setups || [],
     trades: tradesData?.trades?.trades || [],
     isLoading,
     error,

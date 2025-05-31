@@ -61,25 +61,76 @@ export const AddTradeModal = memo(function AddTradeModal({
   });
 
   const [itemManagementTarget, setItemManagementTarget] = useState<ItemManagementType | null>(null);
+  const [isQuickRestoring, setIsQuickRestoring] = useState(false);
+  const [assets, setAssets] = useState<Asset[]>([]);
+  const [sessions, setSessions] = useState<Session[]>([]);
+  const [setups, setSetups] = useState<Setup[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const { 
-    assets = [], 
-    sessions = [], 
-    setups = [], 
-    isLoading, 
-    error,
-    refreshAll,
-    optimisticUpdateTrades
-  } = useJournalDataOptimized(journalId, isOpen);
+  console.log(`[DEBUG] AddTradeModal - Data from state:`, { 
+    assets, 
+    sessions, 
+    setups, 
+    assetsLength: assets?.length, 
+    sessionsLength: sessions?.length, 
+    setupsLength: setups?.length,
+    isLoading,
+    error 
+  });
+
+  const refreshAll = useCallback(async () => {
+    if (!isOpen) return;
+    
+    setIsLoading(true);
+    setError(null);
+    
+    try {
+      console.log('[DEBUG] Fetching global data...');
+      
+      const [assetsResult, sessionsResult, setupsResult] = await Promise.all([
+        import('@/lib/actions/journal.actions').then(m => m.getAssets()),
+        import('@/lib/actions/journal.actions').then(m => m.getSessions()),
+        import('@/lib/actions/journal.actions').then(m => m.getSetups()),
+      ]);
+
+      console.log('[DEBUG] Global data results:', {
+        assetsResult,
+        sessionsResult, 
+        setupsResult
+      });
+
+      if (assetsResult.error || sessionsResult.error || setupsResult.error) {
+        const errorMsg = assetsResult.error || sessionsResult.error || setupsResult.error;
+        setError(errorMsg || 'Erreur lors du chargement');
+        console.error('Error loading global data:', errorMsg);
+      } else {
+        setAssets(assetsResult.assets || []);
+        setSessions(sessionsResult.sessions || []);
+        setSetups(setupsResult.setups || []);
+        console.log('[DEBUG] Successfully loaded global data:', {
+          assets: assetsResult.assets?.length,
+          sessions: sessionsResult.sessions?.length,
+          setups: setupsResult.setups?.length
+        });
+      }
+    } catch (err) {
+      console.error('[DEBUG] Exception loading global data:', err);
+      setError(err instanceof Error ? err.message : 'Erreur inconnue');
+    } finally {
+      setIsLoading(false);
+    }
+  }, [isOpen]);
 
   useEffect(() => {
     if (isOpen) {
-      refreshAll().then(() => {
-      }).catch(err => {
-        console.error('Erreur lors du rafraîchissement:', err);
-      });
+      refreshAll();
     }
   }, [isOpen, refreshAll]);
+
+  const optimisticUpdateTrades = useCallback((trade: any) => {
+    console.log('[DEBUG] Optimistic update trade:', trade);
+  }, []);
 
   useEffect(() => {
     if (!isOpen) {
@@ -159,6 +210,53 @@ export const AddTradeModal = memo(function AddTradeModal({
     }
   }, [journalId, onClose, refreshAll, optimisticUpdateTrades]);
 
+  const handleQuickRestoreAll = useCallback(async () => {
+    setIsQuickRestoring(true);
+    try {
+      console.log('[DEBUG] Starting quick restore for all items...');
+      
+      const assetNames = ["EURUSD", "GBPUSD", "USDJPY", "AUDUSD", "USDCAD", "USDCHF", "NZDUSD"];
+      for (const name of assetNames) {
+        try {
+          await addAsset(name);
+          console.log(`Created asset: ${name}`);
+        } catch (error) {
+          console.warn(`Failed to create asset ${name}:`, error);
+        }
+      }
+
+      const sessionNames = ["LONDON", "NEW YORK", "ASIAN", "OVERLAP LDN/NY"];
+      for (const name of sessionNames) {
+        try {
+          await addSession(name);
+          console.log(`Created session: ${name}`);
+        } catch (error) {
+          console.warn(`Failed to create session ${name}:`, error);
+        }
+      }
+
+      const setupNames = ["BREAKOUT", "PULLBACK", "REVERSAL", "TREND CONTINUATION", "SUPPORT/RESISTANCE"];
+      for (const name of setupNames) {
+        try {
+          await addSetup(name);
+          console.log(`Created setup: ${name}`);
+        } catch (error) {
+          console.warn(`Failed to create setup ${name}:`, error);
+        }
+      }
+
+      toast.success("Éléments de base créés avec succès !");
+      await refreshAll();
+      await onDataNeedsRefresh();
+      
+    } catch (error) {
+      toast.error("Erreur lors de la création des éléments de base.");
+      console.error(error);
+    } finally {
+      setIsQuickRestoring(false);
+    }
+  }, [refreshAll, onDataNeedsRefresh]);
+
   if (!isOpen) return null;
   if (isLoading) return <div>Chargement...</div>;
   if (error) return <div>Erreur lors du chargement des données</div>;
@@ -173,16 +271,19 @@ export const AddTradeModal = memo(function AddTradeModal({
     currentItems = assets;
     currentAddItemAction = addAsset;
     currentDeleteItemAction = deleteAsset;
+    console.log(`[DEBUG] AddTradeModal - Passing assets to ManageItemsModal:`, assets);
   } else if (itemManagementTarget && itemManagementTarget.type === "session") {
     currentItemTypeLabel = "Session";
     currentItems = sessions;
     currentAddItemAction = addSession;
     currentDeleteItemAction = deleteSession;
+    console.log(`[DEBUG] AddTradeModal - Passing sessions to ManageItemsModal:`, sessions);
   } else if (itemManagementTarget && itemManagementTarget.type === "setup") {
     currentItemTypeLabel = "Setup";
     currentItems = setups;
     currentAddItemAction = addSetup;
     currentDeleteItemAction = deleteSetup;
+    console.log(`[DEBUG] AddTradeModal - Passing setups to ManageItemsModal:`, setups);
   }
 
   return (
@@ -200,6 +301,47 @@ export const AddTradeModal = memo(function AddTradeModal({
           <h2 className="text-2xl font-semibold text-purple-300 mb-6">
             Ajouter un Trade
           </h2>
+
+          {/* Alerte de récupération rapide si toutes les listes sont vides */}
+          {assets.length === 0 && sessions.length === 0 && setups.length === 0 && (
+            <div className="mb-6 p-4 bg-amber-900/30 border border-amber-700/50 rounded-lg">
+              <div className="flex items-start gap-3">
+                <div className="flex-shrink-0">
+                  <svg className="w-5 h-5 text-amber-400 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd"/>
+                  </svg>
+                </div>
+                <div className="flex-1">
+                  <h3 className="text-sm font-medium text-amber-300">Aucun élément trouvé</h3>
+                  <p className="mt-1 text-sm text-amber-200">
+                    Vous devez d'abord créer des actifs, sessions et setups pour pouvoir ajouter des trades.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={handleQuickRestoreAll}
+                    disabled={isQuickRestoring || isSubmitting}
+                    className="mt-3 px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white text-sm font-medium rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                  >
+                    {isQuickRestoring ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        Création en cours...
+                      </>
+                    ) : (
+                      <>
+                        <PlusSquare className="w-4 h-4" />
+                        Créer les éléments de base
+                      </>
+                    )}
+                  </button>
+                  <p className="mt-2 text-xs text-amber-300">
+                    Cela créera automatiquement : EURUSD, GBPUSD, USDJPY + Sessions LONDON, NEW YORK + Setups BREAKOUT, PULLBACK, etc.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
           <form onSubmit={handleSubmit(onSubmitTrade)} className="space-y-5">
             {/* Date */}
             <div>
