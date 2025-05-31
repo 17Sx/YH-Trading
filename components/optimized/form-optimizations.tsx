@@ -26,15 +26,13 @@ export const DebouncedInput = memo(({
     if (value !== localValue && !isFirstRender.current) {
       setLocalValue(value);
     }
-  }, [value, localValue]);
-
-  useEffect(() => {
     if (isFirstRender.current) {
       isFirstRender.current = false;
-      return;
     }
-    
-    if (debouncedValue !== value) {
+  }, [value]);
+
+  useEffect(() => {
+    if (debouncedValue !== value && !isFirstRender.current) {
       onChange(debouncedValue);
     }
   }, [debouncedValue, onChange, value]);
