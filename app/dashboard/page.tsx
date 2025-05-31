@@ -1,5 +1,5 @@
 import { DashboardClientWrapper } from "@/components/optimized/dashboard-client-wrapper";
-import { getTrades } from "@/lib/actions/journal.actions";
+import { getTradesForStats } from "@/lib/actions/journal.actions";
 import type { Trade } from "@/lib/actions/journal.actions";
 import { createSupabaseServerClient } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
@@ -58,7 +58,7 @@ export default async function DashboardPage({
   let tradesError: string | undefined;
 
   if (selectedJournalIds.length > 0) {
-    const tradesPromises = selectedJournalIds.map(journalId => getTrades(journalId));
+    const tradesPromises = selectedJournalIds.map(journalId => getTradesForStats(journalId));
     const tradesResults = await Promise.all(tradesPromises);
     
     trades = tradesResults.flatMap(result => result.trades);

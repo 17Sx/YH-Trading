@@ -171,7 +171,6 @@ export async function getTrades(journalId: string): Promise<{ trades: Trade[]; e
     .eq("journal_id", journalId)
     .order("trade_date", { ascending: false })
     .order("created_at", { ascending: false });
-
   if (error) {
     console.error("Erreur de récupération des trades:", error);
     return { trades: [], error: error.message };
@@ -194,6 +193,57 @@ export async function getTrades(journalId: string): Promise<{ trades: Trade[]; e
     };
   }) || [];
 
+
+  return { trades: tradesData };
+}
+
+export async function getTradesForStats(journalId: string): Promise<{ trades: Trade[]; error?: string }> {
+  const supabase = createSupabaseActionClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { trades: [], error: "Utilisateur non authentifié." };
+
+  const { data, error } = await supabase
+    .from("trades")
+    .select(`
+      id,
+      trade_date,
+      asset_id, 
+      session_id, 
+      setup_id, 
+      risk_input,
+      profit_loss_amount,
+      tradingview_link,
+      notes,
+      created_at,
+      asset:assets(name),
+      session:sessions(name),
+      setup:setups(name)
+    `)
+    .eq("user_id", user.id)
+    .eq("journal_id", journalId)
+    .order("trade_date", { ascending: false })
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    console.error("Erreur de récupération des trades:", error);
+    return { trades: [], error: error.message };
+  }
+  
+  const tradesData = data?.map(t => {    
+    const assetData = Array.isArray(t.asset) ? t.asset[0] : t.asset;
+    const sessionData = Array.isArray(t.session) ? t.session[0] : t.session;
+    const setupData = Array.isArray(t.setup) ? t.setup[0] : t.setup;
+
+    return {
+      ...t,
+      asset_name: assetData?.name || null, 
+      session_name: sessionData?.name || null,
+      setup_name: setupData?.name || null,
+      asset: undefined,
+      session: undefined,
+      setup: undefined,
+    };
+  }) || [];
 
   return { trades: tradesData };
 }

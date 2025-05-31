@@ -13,6 +13,7 @@ import {
   getSessions,
   getSetups,
   getTrades,
+  getTradesForStats,
   deleteTrade,
   type Asset,
   type Session,
@@ -61,6 +62,7 @@ export function JournalClient({ journal }: JournalClientProps) {
     setups: [],
     trades: [],
   });
+  const [allTradesForStats, setAllTradesForStats] = useState<Trade[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isPending, startTransition] = useTransition();
   const [isNavigating, setIsNavigating] = useState(false);
@@ -74,38 +76,41 @@ export function JournalClient({ journal }: JournalClientProps) {
 
   const loadData = async () => {
     setIsLoading(true);
-    startTransition(async () => {
+    await startTransition(async () => {
       try {
         const [
           assetsResult,
           sessionsResult,
           setupsResult,
-          tradesResult
+          allTradesResult
         ] = await Promise.all([
           getAssets(),
           getSessions(),
           getSetups(),
-          getTrades(journal.id),
+          getTradesForStats(journal.id),
         ]);
 
-        const error = assetsResult.error || sessionsResult.error || setupsResult.error || tradesResult.error;
+        const error = assetsResult.error || sessionsResult.error || setupsResult.error || allTradesResult.error;
 
         if (error) {
           console.error("Erreur de chargement des données:", error);
           toast.error(`Erreur de chargement: ${error}`);
           setJournalData({ assets: [], sessions: [], setups: [], trades: [], error });
+          setAllTradesForStats([]);
         } else {
           setJournalData({
             assets: assetsResult.assets,
             sessions: sessionsResult.sessions,
             setups: setupsResult.setups,
-            trades: tradesResult.trades,
+            trades: allTradesResult.trades,
           });
+          setAllTradesForStats(allTradesResult.trades);
         }
       } catch (e: any) {
         console.error("Exception lors du chargement des données:", e);
         toast.error(`Une exception s'est produite: ${e.message || e}`);
         setJournalData({ assets: [], sessions: [], setups: [], trades: [], error: e.message || String(e) });
+        setAllTradesForStats([]);
       } finally {
         setIsLoading(false);
       }
