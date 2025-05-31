@@ -261,6 +261,68 @@ export async function addSetup(name: string): Promise<{ data?: Setup; error?: st
   return addItem(name, "setups");
 }
 
+async function addItemWithJournal(
+  itemName: string,
+  tableName: "assets" | "sessions" | "setups",
+  journalId: string
+): Promise<{ data?: { id: string; name: string }; error?: string; issues?: z.ZodIssue[] }> {
+  const supabase = createSupabaseActionClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { error: "Utilisateur non authentifié." };
+
+  if (!itemName || itemName.trim().length === 0) {
+    return { error: "Le nom ne peut pas être vide." };
+  }
+  if (itemName.length > 100) {
+    return { error: "Le nom ne peut pas dépasser 100 caractères." };
+  }
+
+  const { data: existingItem, error: existingError } = await supabase
+    .from(tableName)
+    .select("id")
+    .eq("user_id", user.id)
+    .ilike("name", itemName)
+    .single();
+
+  if (existingError && existingError.code !== "PGRST116") { 
+    console.error(`Erreur lors de la vérification de l'existence de l'item (${tableName}):`, existingError);
+    return { error: existingError.message };
+  }
+  if (existingItem) {
+    return { error: `L'élément \"${itemName}\" existe déjà.` };
+  }
+
+  const { data: newItem, error: insertError } = await supabase
+    .from(tableName)
+    .insert({ 
+      user_id: user.id, 
+      journal_id: journalId,
+      name: itemName.trim()
+    })
+    .select("id, name")
+    .single();
+
+  if (insertError) {
+    console.error(`Erreur d'insertion Supabase (${tableName}):`, insertError);
+    return { error: insertError.message };
+  }
+
+  invalidateCache('reference-data');
+  revalidatePath("/journal"); 
+  return { data: newItem };
+}
+
+export async function addAssetWithJournal(name: string, journalId: string): Promise<{ data?: Asset; error?: string; issues?: z.ZodIssue[] }> {
+  return addItemWithJournal(name, "assets", journalId);
+}
+
+export async function addSessionWithJournal(name: string, journalId: string): Promise<{ data?: Session; error?: string; issues?: z.ZodIssue[] }> {
+  return addItemWithJournal(name, "sessions", journalId);
+}
+
+export async function addSetupWithJournal(name: string, journalId: string): Promise<{ data?: Setup; error?: string; issues?: z.ZodIssue[] }> {
+  return addItemWithJournal(name, "setups", journalId);
+}
 
 async function deleteItem(
   itemId: string,

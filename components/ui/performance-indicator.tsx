@@ -19,7 +19,6 @@ export const PerformanceIndicator = memo(({ metrics, className = "" }: Performan
   const [isVisible, setIsVisible] = useState(false);
 
   useEffect(() => {
-    // Afficher l'indicateur pendant 3 secondes après un changement de métriques
     setIsVisible(true);
     const timer = setTimeout(() => setIsVisible(false), 3000);
     return () => clearTimeout(timer);

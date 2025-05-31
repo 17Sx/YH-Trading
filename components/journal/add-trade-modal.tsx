@@ -6,6 +6,7 @@ import { AddTradeSchema, type AddTradeInput } from "@/schemas/journal.schema";
 import { 
   addTrade, 
   addAsset, addSession, addSetup, 
+  addAssetWithJournal, addSessionWithJournal, addSetupWithJournal,
   deleteAsset, deleteSession, deleteSetup 
 } from "@/lib/actions/journal.actions";
 import type { Asset, Session, Setup } from "@/lib/actions/journal.actions";
@@ -218,7 +219,7 @@ export const AddTradeModal = memo(function AddTradeModal({
       const assetNames = ["EURUSD", "GBPUSD", "USDJPY", "AUDUSD", "USDCAD", "USDCHF", "NZDUSD"];
       for (const name of assetNames) {
         try {
-          await addAsset(name);
+          await addAssetWithJournal(name, journalId);
           console.log(`Created asset: ${name}`);
         } catch (error) {
           console.warn(`Failed to create asset ${name}:`, error);
@@ -228,7 +229,7 @@ export const AddTradeModal = memo(function AddTradeModal({
       const sessionNames = ["LONDON", "NEW YORK", "ASIAN", "OVERLAP LDN/NY"];
       for (const name of sessionNames) {
         try {
-          await addSession(name);
+          await addSessionWithJournal(name, journalId);
           console.log(`Created session: ${name}`);
         } catch (error) {
           console.warn(`Failed to create session ${name}:`, error);
@@ -238,7 +239,7 @@ export const AddTradeModal = memo(function AddTradeModal({
       const setupNames = ["BREAKOUT", "PULLBACK", "REVERSAL", "TREND CONTINUATION", "SUPPORT/RESISTANCE"];
       for (const name of setupNames) {
         try {
-          await addSetup(name);
+          await addSetupWithJournal(name, journalId);
           console.log(`Created setup: ${name}`);
         } catch (error) {
           console.warn(`Failed to create setup ${name}:`, error);
@@ -255,7 +256,7 @@ export const AddTradeModal = memo(function AddTradeModal({
     } finally {
       setIsQuickRestoring(false);
     }
-  }, [refreshAll, onDataNeedsRefresh]);
+  }, [refreshAll, onDataNeedsRefresh, journalId]);
 
   if (!isOpen) return null;
   if (isLoading) return <div>Chargement...</div>;
@@ -266,22 +267,26 @@ export const AddTradeModal = memo(function AddTradeModal({
   let currentDeleteItemAction: any;
   let currentItemTypeLabel = "";
 
+  const addAssetWrapper = (name: string) => addAssetWithJournal(name, journalId);
+  const addSessionWrapper = (name: string) => addSessionWithJournal(name, journalId);
+  const addSetupWrapper = (name: string) => addSetupWithJournal(name, journalId);
+
   if (itemManagementTarget && itemManagementTarget.type === "asset") {
     currentItemTypeLabel = "Actif";
     currentItems = assets;
-    currentAddItemAction = addAsset;
+    currentAddItemAction = addAssetWrapper;
     currentDeleteItemAction = deleteAsset;
     console.log(`[DEBUG] AddTradeModal - Passing assets to ManageItemsModal:`, assets);
   } else if (itemManagementTarget && itemManagementTarget.type === "session") {
     currentItemTypeLabel = "Session";
     currentItems = sessions;
-    currentAddItemAction = addSession;
+    currentAddItemAction = addSessionWrapper;
     currentDeleteItemAction = deleteSession;
     console.log(`[DEBUG] AddTradeModal - Passing sessions to ManageItemsModal:`, sessions);
   } else if (itemManagementTarget && itemManagementTarget.type === "setup") {
     currentItemTypeLabel = "Setup";
     currentItems = setups;
-    currentAddItemAction = addSetup;
+    currentAddItemAction = addSetupWrapper;
     currentDeleteItemAction = deleteSetup;
     console.log(`[DEBUG] AddTradeModal - Passing setups to ManageItemsModal:`, setups);
   }
