@@ -1,7 +1,8 @@
-import { memo, useMemo, Suspense, lazy } from 'react';
+import { memo, useMemo, Suspense, lazy, useState } from 'react';
 import { CumulativePnlChart } from "@/components/journal/charts/cumulative-pnl-chart";
 import type { Trade } from "@/lib/actions/journal.actions";
 import { BuildingStorefrontIcon, ChartBarIcon, PresentationChartLineIcon, ScaleIcon } from "@heroicons/react/24/outline";
+import { Check, ChevronDown } from "lucide-react";
 import Dither from "@/components/ui/Dither/Dither";
 
 const MonthlyPnlBarChart = lazy(() => 
@@ -138,12 +139,121 @@ const ChartSkeleton = () => (
 interface DashboardOptimizedProps {
   trades: Trade[];
   selectedJournals: Array<{ id: string; name: string }>;
+  allJournals: Array<{ id: string; name: string }>;
   onJournalSelectionChange: (journalIds: string[]) => void;
 }
+
+const MultiJournalSelector = memo(({ 
+  journals, 
+  selectedJournalIds, 
+  onJournalsChange 
+}: {
+  journals: Array<{ id: string; name: string }>;
+  selectedJournalIds: string[];
+  onJournalsChange: (ids: string[]) => void;
+}) => {
+  const [isOpen, setIsOpen] = useState(false);
+
+  const handleJournalToggle = (journalId: string) => {
+    const newSelectedIds = selectedJournalIds.includes(journalId)
+      ? selectedJournalIds.filter(id => id !== journalId)
+      : [...selectedJournalIds, journalId];
+    onJournalsChange(newSelectedIds);
+  };
+
+  const handleSelectAll = () => {
+    const allIds = journals.map(j => j.id);
+    onJournalsChange(allIds);
+  };
+
+  const handleClearAll = () => {
+    onJournalsChange([]);
+  };
+
+  const getDisplayText = () => {
+    if (selectedJournalIds.length === 0) {
+      return "Aucun journal sélectionné";
+    }
+    if (selectedJournalIds.length === journals.length) {
+      return "Tous les journaux";
+    }
+    if (selectedJournalIds.length === 1) {
+      const journal = journals.find(j => j.id === selectedJournalIds[0]);
+      return journal?.name || "1 journal";
+    }
+    return `${selectedJournalIds.length} journaux sélectionnés`;
+  };
+
+  return (
+    <div className="relative">
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        className="w-[250px] px-3 py-2 bg-gray-800/70 border border-gray-700/50 rounded-md text-gray-200 text-left flex items-center justify-between hover:bg-gray-700/70 transition-colors"
+      >
+        <span className="truncate">{getDisplayText()}</span>
+        <ChevronDown className={`w-4 h-4 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+      </button>
+
+      {isOpen && (
+        <div className="absolute top-full left-0 mt-1 w-full bg-gray-800 border border-gray-700 rounded-md shadow-lg z-50 max-h-80 overflow-y-auto">
+          {/* Actions rapides */}
+          <div className="p-2 border-b border-gray-700 flex gap-2">
+            <button
+              onClick={handleSelectAll}
+              className="px-2 py-1 text-xs bg-purple-600 hover:bg-purple-700 text-white rounded"
+            >
+              Tout sélectionner
+            </button>
+            <button
+              onClick={handleClearAll}
+              className="px-2 py-1 text-xs bg-gray-600 hover:bg-gray-500 text-white rounded"
+            >
+              Tout désélectionner
+            </button>
+          </div>
+
+          {/* Liste des journaux */}
+          <div>
+            {journals.map((journal) => {
+              const isSelected = selectedJournalIds.includes(journal.id);
+              return (
+                <div
+                  key={journal.id}
+                  onClick={() => handleJournalToggle(journal.id)}
+                  className="flex items-center gap-2 p-2 hover:bg-gray-700 cursor-pointer rounded"
+                >
+                  <div className={`w-4 h-4 rounded border-2 flex items-center justify-center ${
+                    isSelected 
+                      ? 'bg-purple-600 border-purple-600' 
+                      : 'border-gray-500'
+                  }`}>
+                    {isSelected && <Check className="w-3 h-3 text-white" />}
+                  </div>
+                  <span className="text-gray-200 text-sm">{journal.name}</span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Overlay pour fermer le dropdown */}
+      {isOpen && (
+        <div 
+          className="fixed inset-0 z-40" 
+          onClick={() => setIsOpen(false)}
+        />
+      )}
+    </div>
+  );
+});
+
+MultiJournalSelector.displayName = 'MultiJournalSelector';
 
 export const DashboardOptimized = memo(({ 
   trades, 
   selectedJournals, 
+  allJournals,
   onJournalSelectionChange 
 }: DashboardOptimizedProps) => {
   const primaryAccentRGB: [number, number, number] = [0.494, 0.357, 0.937];
@@ -161,6 +271,8 @@ export const DashboardOptimized = memo(({
     }
     return <span className="text-purple-300"> - {selectedJournals.length} journaux sélectionnés</span>;
   }, [selectedJournals]);
+
+  const selectedJournalIds = useMemo(() => selectedJournals.map(j => j.id), [selectedJournals]);
 
   const statsCards = useMemo(() => [
     { title: "Performance Total", value: `${stats.totalPnl.toFixed(2)}${stats.totalPnl !== 0 ? pnlSuffix : ''}`, icon: <ScaleIcon className="h-6 w-6 md:h-7 md:w-7 text-purple-400" /> },
@@ -193,7 +305,7 @@ export const DashboardOptimized = memo(({
       <div className="relative z-10 flex flex-col items-center justify-start p-4 pt-10 md:pt-12 text-gray-100 pointer-events-none min-h-screen">
         <div className="w-full max-w-7xl space-y-6 bg-transparent p-0 md:p-4 pointer-events-auto flex flex-col flex-grow">
           
-          <header className="mb-4 flex flex-col md:flex-row items-center justify-between text-left">
+          <header className="mb-4 flex flex-col md:flex-row items-start md:items-center justify-between text-left gap-4">
             <div className="flex flex-col">
               <h1 className="text-3xl md:text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-500">
                 Dashboard Global
@@ -202,6 +314,16 @@ export const DashboardOptimized = memo(({
                 Vue d'ensemble de vos performances de trading
                 {subtitleMessage}
               </p>
+            </div>
+            
+            {/* Sélecteur de journaux */}
+            <div className="flex flex-col gap-2">
+              <label className="text-sm text-gray-400">Journaux à analyser :</label>
+              <MultiJournalSelector
+                journals={allJournals}
+                selectedJournalIds={selectedJournalIds}
+                onJournalsChange={onJournalSelectionChange}
+              />
             </div>
           </header>
 

@@ -1,4 +1,4 @@
-import { DashboardOptimized } from "@/components/optimized/dashboard-optimized";
+import { DashboardClientWrapper } from "@/components/optimized/dashboard-client-wrapper";
 import { getTrades } from "@/lib/actions/journal.actions";
 import type { Trade } from "@/lib/actions/journal.actions";
 import { createSupabaseServerClient } from '@/lib/supabase/server';
@@ -78,12 +78,10 @@ export default async function DashboardPage({
   }
 
   return (
-    <DashboardOptimized
+    <DashboardClientWrapper
       trades={trades}
       selectedJournals={selectedJournals}
-      onJournalSelectionChange={(journalIds: string[]) => {
-        
-      }}
+      allJournals={journals}
     />
   );
 } 
