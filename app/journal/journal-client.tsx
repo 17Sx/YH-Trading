@@ -1008,7 +1008,7 @@ export function JournalClient({ journal }: JournalClientProps) {
             
             {/* Filtres et Stats */}
             <div className="mb-8 p-4 bg-gray-800/70 rounded-lg shadow-xl backdrop-blur-md border border-gray-700/50">
-              <div className="flex flex-col sm:flex-row gap-4 sm:gap-6 items-center mb-6 flex-wrap">
+              <div className="flex flex-col sm:flex-row gap-4 sm:gap-6 items-start sm:items-center mb-6 flex-wrap">
                 <div className="flex items-center gap-2 text-gray-300">
                   <CalendarDays size={20} className="text-purple-400"/>
                   <span className="font-medium">Filtrer par période :</span>
@@ -1085,28 +1085,28 @@ export function JournalClient({ journal }: JournalClientProps) {
               </div>
 
               {/* Tableau des Stats Mensuelles */}
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-7 gap-4 text-center">
-                <div className="bg-gray-700/50 p-4 rounded-md">
+              <div className="flex flex-col sm:flex-row w-full justify-center items-center gap-4">
+                <div className="bg-gray-700/50 p-4 rounded-md w-full">
                   <p className="text-sm text-purple-300 mb-1">Performance</p>
                   <p className="text-xl font-semibold text-gray-100">{monthlyStats.performanceDisplay}</p>
                 </div>
-                <div className="bg-gray-700/50 p-4 rounded-md">
+                <div className="bg-gray-700/50 p-4 rounded-md w-full">
                   <p className="text-sm text-purple-300 mb-1">Winrate</p>
                   <p className="text-xl font-semibold text-gray-100">{monthlyStats.winRate}</p>
                 </div>
-                <div className="bg-gray-700/50 p-4 rounded-md">
+                <div className="bg-gray-700/50 p-4 rounded-md w-full">
                   <p className="text-sm text-purple-300 mb-1">Trades</p>
                   <p className="text-xl font-semibold text-gray-100">{monthlyStats.numTrades}</p>
                 </div>
-                <div className="bg-gray-700/50 p-4 rounded-md">
+                <div className="bg-gray-700/50 p-4 rounded-md w-full">
                   <p className="text-sm text-purple-300 mb-1">Gagnants (TP)</p>
                   <p className="text-xl font-semibold text-green-400">{monthlyStats.numTP}</p>
                 </div>
-                <div className="bg-gray-700/50 p-4 rounded-md">
+                <div className="bg-gray-700/50 p-4 rounded-md w-full">
                   <p className="text-sm text-purple-300 mb-1">Perdants (SL)</p>
                   <p className="text-xl font-semibold text-red-400">{monthlyStats.numSL}</p>
                 </div>
-                <div className="bg-gray-700/50 p-4 rounded-md">
+                <div className="bg-gray-700/50 p-4 rounded-md w-full">
                   <p className="text-sm text-purple-300 mb-1">Neutres (BE)</p>
                   <p className="text-xl font-semibold text-blue-400">{monthlyStats.numBE}</p>
                 </div>

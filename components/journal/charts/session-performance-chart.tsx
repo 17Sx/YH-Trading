@@ -44,7 +44,7 @@ export function SessionPerformanceChart({ trades }: SessionPerformanceChartProps
             formatter={(value: number) => [`${value.toFixed(2)}%`, "PnL Total"]}
           />
           <Legend wrapperStyle={{ fontSize: '14px' }} />
-          <Bar dataKey="pnl" name="PnL Total par Session" >
+          <Bar dataKey="pnl" name=" " >
             {chartData.map((entry, index) => (
               <Cell 
                 key={`cell-${index}`} 

@@ -51,7 +51,7 @@ export function CumulativePnlChart({ trades }: CumulativePnlChartProps) {
 
     return (
       <div className="bg-gray-800/70 p-4 rounded-lg shadow-xl backdrop-blur-md border border-gray-700/50 min-h-[350px]"> 
-        <h3 className="text-lg font-semibold text-purple-300 mb-4 text-center">Performance Cumulative (%)//</h3>
+        <h3 className="text-lg font-semibold text-purple-300 mb-4 text-center">Performance Cumulative (%)</h3>
         <ResponsiveContainer width="100%" height={300}>
           <AreaChart data={chartData} margin={{ top: 5, right: 20, left: 1, bottom: 20 }}> 
             <defs>
