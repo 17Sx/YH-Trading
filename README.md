@@ -133,4 +133,4 @@ Visit [http://localhost:3000](http://localhost:3000) to see the app.
 
 ---
 
-> _Made with ❤️ by 17Sx!_
+> _Made by 17Sx!_
